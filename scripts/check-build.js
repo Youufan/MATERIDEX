@@ -1,0 +1,11 @@
+'use strict';
+const fs=require('fs'),path=require('path'),vm=require('vm');
+const root=path.join(__dirname,'..');
+const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(d,e.name)):[path.join(d,e.name)]);
+const js=walk(path.join(root,'js')).filter(f=>f.endsWith('.js'));
+for(const file of js)new vm.Script(fs.readFileSync(file,'utf8'),{filename:file});
+const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const local=[...html.matchAll(/(?:src|href)="((?:js|css|vendor)\/[^"?#]+)"/g)].map(m=>m[1]);
+const missing=local.filter(f=>!fs.existsSync(path.join(root,f)));
+if(missing.length)throw new Error('Missing referenced assets: '+missing.join(', '));
+console.log(`Static production check: ${js.length} scripts parsed; ${local.length} referenced assets present`);

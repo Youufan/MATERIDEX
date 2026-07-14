@@ -5,12 +5,11 @@ const Vault3D={ three:null, spec:null, rot:{x:-.2,y:.3}, drag:null,
     const cv=$('#specimen3d');
     if(!HAS3D){ const ctx=cv.getContext('2d'); cv.width=wrap.clientWidth; cv.height=wrap.clientHeight;
       drawPodGlyph(ctx,MATERIALS[id],cv.width,cv.height,1); return; }
-    if(!this.three){ const st=GFX.stage(cv,{bloom:1.0,fov:40});
+    if(!this.three){ const st=GFX.stage(cv,{bloom:.18,fov:40});
       const r=st.renderer, sc=st.scene, cam=st.camera;
-      sc.add(new THREE.AmbientLight(0x9088c8,.55));
-      const k=new THREE.DirectionalLight(0xfff8ec,1); k.position.set(3,5,6); sc.add(k);
-      const p=new THREE.PointLight(0x8b6cf0,1.2,30); p.position.set(-5,-2,4); sc.add(p);
-      const c2=new THREE.PointLight(0x8fd8f2,.8,30); c2.position.set(5,3,-4); sc.add(c2);
+      sc.add(new THREE.HemisphereLight(0xdfe7f4,0x171526,.58));
+      const k=new THREE.DirectionalLight(0xfff8ec,.72); k.position.set(3,5,6); sc.add(k);
+      const c2=new THREE.DirectionalLight(0x8fd8f2,.3); c2.position.set(-5,-2,4); sc.add(c2);
       /* gallery pedestal + reflective floor */
       const floor=new THREE.Mesh(new THREE.CylinderGeometry(2.4,2.8,.16,48),
         new THREE.MeshPhysicalMaterial({color:0x14121f,metalness:.95,roughness:.18,envMapIntensity:1.8,
@@ -27,7 +26,7 @@ const Vault3D={ three:null, spec:null, rot:{x:-.2,y:.3}, drag:null,
       wrap.addEventListener('pointerup',()=>this.drag=null);
       this.loop(); }
     if(this.spec) this.three.sc.remove(this.spec);
-    this.spec=specimenGroup(id); this.three.sc.add(this.spec); },
+    this.structure=buildStructure(id);this.spec=this.structure.group;this.spec.scale.multiplyScalar(.72);this.three.sc.add(this.spec); },
   loop(){ requestAnimationFrame(()=>this.loop());
     if(CURRENT!=='collection'||!this.three||!this.spec) return;
     const wrap=$('#specimen3d-wrap'); if(!wrap) return;
@@ -38,7 +37,7 @@ const Vault3D={ three:null, spec:null, rot:{x:-.2,y:.3}, drag:null,
     this.spec.rotation.y=lerp(this.spec.rotation.y,this.rot.y+(rm?0:t*.25),.08);
     if(this.spec.userData.breathe) this.spec.scale.setScalar(1+.05*Math.sin(t*1.6));
     if(!rm&&this.dust) this.dust.userData.drift(t,.35);
-    this.three.cam.position.set(0,0,4.6); this.three.cam.lookAt(0,0,0);
+    this.three.cam.position.set(0,0,5.4); this.three.cam.lookAt(0,0,0);
     this.three.st.render(); } };
 
 function drawPodGlyph(ctx,m,w,h,big){ // 2D thumbnail per specimen type

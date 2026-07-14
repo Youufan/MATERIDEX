@@ -1,0 +1,9 @@
+{
+  "name": "materidex",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "validate:structures": "node scripts/validate-structures.js",
+    "build": "npm run validate:structures && node scripts/check-build.js"
+  }
+}

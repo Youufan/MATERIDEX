@@ -210,21 +210,22 @@ function buildVeil(scene){
 }
 
 /* ---------- codex controller ---------- */
-const Codex={ id:null, st:null, veil:null, spec:null, rot:{x:-.5,y:.12}, zoom:8.4, drag:null, mouse:{x:0,y:0},
+const Codex={ id:null, st:null, spec:null, structure:null, rot:{x:-.5,y:.12}, zoom:7.4, drag:null, mouse:{x:0,y:0},
 init(){
   this.stage=$('#specimen-stage'); this.cv=$('#specimen-canvas');
-  if(HAS3D){ const st=GFX.stage(this.cv,{bloom:.85,fov:44}); this.st=st;
+  if(HAS3D){ const st=GFX.stage(this.cv,{bloom:.18,fov:44}); this.st=st;
     st.scene.fog=new THREE.FogExp2(0x05050e,.009);
-    st.scene.add(new THREE.AmbientLight(0x8a80c4,.5));
-    const key=new THREE.DirectionalLight(0xfff4e2,1.05); key.position.set(4,7,8); st.scene.add(key);
-    const uv=new THREE.PointLight(0x8b6cf0,1.5,50); uv.position.set(-7,-3,6); st.scene.add(uv);
-    const cy=new THREE.PointLight(0x93dcf4,.95,50); cy.position.set(7,4,-5); st.scene.add(cy);
+    st.scene.add(new THREE.HemisphereLight(0xdfe7f4,0x171526,.58));
+    const key=new THREE.DirectionalLight(0xfff3dc,.72); key.position.set(4,7,8); st.scene.add(key);
+    const fill=new THREE.DirectionalLight(0x9ec6e7,.32); fill.position.set(-6,-2,4); st.scene.add(fill);
     this.bgNeb=GFX.particles(S.settings.fx==='low'?90:220,60,{color:'#8f81c8',size:.34,opacity:.2,ySpread:34});
     this.bgNeb.position.z=-36; st.scene.add(this.bgNeb);
-    this.veil=buildVeil(st.scene);
+    this.raycaster=new THREE.Raycaster(); this.pointer=new THREE.Vector2(2,2);
     this.loop();
   } else this.fallback2D();
-  this.bind(); this.show('graphene');
+  this.bind(); const requested=new URLSearchParams(location.search).get('structure');
+  this.show(requested&&STRUCTURE_DATA[requested]?requested:'graphene');
+  if(requested&&STRUCTURE_DATA[requested])setTimeout(()=>nav('codex'),0);
 },
 loop(){ requestAnimationFrame(()=>this.loop());
   if(CURRENT!=='codex'||!this.st) return;
@@ -232,12 +233,11 @@ loop(){ requestAnimationFrame(()=>this.loop());
   st.setSize(this.stage.clientWidth,this.stage.clientHeight);
   const rm=document.documentElement.dataset.motion==='reduced';
   const tx=this.rot.x+(this.drag?0:this.mouse.y*.05), ty=this.rot.y+(this.drag?0:this.mouse.x*.09);
-  const g=this.id==='graphene'? this.veil.group : this.spec;
+  const g=this.spec;
   if(g){ g.rotation.x=lerp(g.rotation.x,tx,.07);
     g.rotation.y=lerp(g.rotation.y,ty+(rm?0:t*.045),.07);
     if(g.userData&&g.userData.breathe) g.scale.setScalar(2.3*(1+.04*Math.sin(t*1.8))); }
-  if(this.id==='graphene') this.veil.update(t);
-  else if(this.specAnim) this.specAnim(t,rm);
+  if(this.specAnim) this.specAnim(t,rm);
   if(!rm&&this.bgNeb) this.bgNeb.userData.drift(t,.5);
   st.camera.position.x=lerp(st.camera.position.x,this.mouse.x*.5,.05);
   st.camera.position.y=lerp(st.camera.position.y,-this.mouse.y*.35,.05);
@@ -247,18 +247,11 @@ loop(){ requestAnimationFrame(()=>this.loop());
   this.hotspots();
 },
 hotspots(){ const tip=$('#hotspot-tip');
-  if(this.id!=='graphene'||!this.veil||this.veil.mode==='simple'){ tip.style.opacity=0; return; }
-  const {camera}=this.st; const rect=this.stage.getBoundingClientRect();
-  let best=null; const v=new THREE.Vector3();
-  for(const h of this.veil.hot){ const i=h.i, p=this.veil.pts[i];
-    v.set(p[0],p[1],this.veil.zbuf[i]).applyMatrix4(this.veil.group.matrixWorld).project(camera);
-    const sx=(v.x*.5+.5)*rect.width, sy=(-v.y*.5+.5)*rect.height;
-    const d=Math.hypot(sx-this.px,sy-this.py);
-    if(d<36&&(!best||d<best.d)) best={h,sx,sy,d}; }
-  if(best){ tip.innerHTML=`<b>${best.h.t}</b>${best.h.d}`;
-    tip.style.left=clamp(best.sx+18,10,rect.width-246)+'px';
-    tip.style.top=clamp(best.sy-10,10,rect.height-90)+'px';
-    tip.style.opacity=1; } else tip.style.opacity=0;
+  if(!this.structure||!this.raycaster||!this.structure.pickables.length){tip.style.opacity=0;return;}
+  this.raycaster.setFromCamera(this.pointer,this.st.camera); const hit=this.raycaster.intersectObjects(this.structure.pickables,false)[0];
+  if(!hit||hit.instanceId==null){tip.style.opacity=0;return;} const rec=hit.object.userData.atomInstances[hit.instanceId],el=ELEMENTS[rec.element],rect=this.stage.getBoundingClientRect();
+  tip.innerHTML=`<b>${el.name} · ${rec.element}</b>${rec.role||'Structural atom'}${rec.occupancy!==1?`<br>Occupancy: ${rec.occupancy}`:''}`;
+  tip.style.left=clamp((this.px||0)+18,10,rect.width-246)+'px';tip.style.top=clamp((this.py||0)-10,10,rect.height-90)+'px';tip.style.opacity=1;
 },
 bind(){
   const st=this.stage;
@@ -266,12 +259,13 @@ bind(){
   st.addEventListener('pointermove',e=>{ const rect=st.getBoundingClientRect();
     this.px=e.clientX-rect.left; this.py=e.clientY-rect.top;
     this.mouse.x=(this.px/rect.width-.5)*2; this.mouse.y=(this.py/rect.height-.5)*2;
+    this.pointer.set(this.mouse.x,-this.mouse.y);
     if(this.drag){ this.rot.y=this.drag.ry+(e.clientX-this.drag.x)*.006;
       this.rot.x=clamp(this.drag.rx+(e.clientY-this.drag.y)*.006,-1.5,1.5); } });
   st.addEventListener('pointerup',()=>this.drag=null);
   st.addEventListener('wheel',e=>{ e.preventDefault(); this.zoom=clamp(this.zoom+e.deltaY*.011,4.2,19); },{passive:false});
   $$('.vm-btn').forEach(b=>b.addEventListener('click',()=>{ $$('.vm-btn').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on'); Sound.click(); if(this.veil) this.veil.setMode(b.dataset.vm);
+    b.classList.add('on'); Sound.click(); if(this.structure) this.structure.setBonds(b.dataset.vm!=='lattice');
     if(this.bgNeb) this.bgNeb.material.opacity = b.dataset.vm==='bonds'? .05 : .2;
     const notes={lattice:'Lattice — carbon atoms in their honeycomb arrangement.',
       bonds:'Bond network — every σ-bond explicit; environment dimmed for readability.',
@@ -281,15 +275,15 @@ bind(){
   /* structure toggles: defects · unit cell · labels */
   const tg=document.createElement('div'); tg.id='struct-toggles';
   tg.style.cssText='position:absolute;right:366px;top:calc(var(--hud-h) + 268px);z-index:8;display:flex;flex-direction:column;gap:6px';
-  tg.innerHTML=['defects','unit cell','labels'].map(k=>
-    `<button class="chip ${k==='defects'?'on':''}" data-stg="${k}">${k}</button>`).join('');
+  tg.innerHTML=['bonds','unit cell','labels'].map(k=>
+    `<button class="chip ${k==='bonds'||k==='labels'?'on':''}" data-stg="${k}">${k}</button>`).join('');
   $('#scr-codex').appendChild(tg);
   $$('#struct-toggles [data-stg]').forEach(b=>b.addEventListener('click',()=>{
     b.classList.toggle('on'); const on=b.classList.contains('on'); Sound.click();
-    if(!this.veil) return;
-    if(b.dataset.stg==='defects') this.veil.setDefects(on);
-    if(b.dataset.stg==='unit cell') this.veil.cell.visible=on;
-    if(b.dataset.stg==='labels') this.veil.measure.visible=on; }));
+    if(!this.structure) return;
+    if(b.dataset.stg==='bonds') this.structure.setBonds(on);
+    if(b.dataset.stg==='unit cell') this.structure.setCell(on);
+    if(b.dataset.stg==='labels') this.structure.setLabels(on); }));
   $('#act-scan').addEventListener('click',()=>this.scan());
   $('#act-sim').addEventListener('click',()=>{ Lab.setMaterial(this.id); nav('lab'); });
   $('#act-compare').addEventListener('click',()=>{ Loadout.addCompare(this.id); nav('loadout'); });
@@ -313,16 +307,13 @@ show(id){ this.id=id; const m=MATERIALS[id];
   S.recentViewed=[id,...S.recentViewed.filter(x=>x!==id)].slice(0,6); save();
   if(window.Quests&&Quests.event) Quests.event('view-material',{id});
   if(this.st){ if(this.spec){ this.st.scene.remove(this.spec); this.spec=null; }
-    if(id==='graphene'){ this.veil.group.visible=true; this.zoom=8.4; }
-    else{ this.veil.group.visible=false;
-      const bs=buildStructure(id);
-      this.spec=bs.group; this.specAnim=bs.anim||null;
-      this.spec.scale.setScalar(1.6);
-      const halo=new THREE.Mesh(new THREE.TorusGeometry(3.2,.012,10,160),GFX.chrome('#d9d5e6',.12));
-      halo.rotation.x=Math.PI/2.15; this.spec.add(halo);
-      this.st.scene.add(this.spec); this.zoom=7.4; } }
-  $('#view-modes').style.display = id==='graphene' ? 'flex':'none';
-  const stgEl=$('#struct-toggles'); if(stgEl) stgEl.style.display = id==='graphene'?'flex':'none';
+    const bs=buildStructure(id);this.structure=bs;this.spec=bs.group;this.specAnim=bs.anim||null;this.st.scene.add(this.spec);this.zoom=7.4;
+    const cellBtn=$('[data-stg="unit cell"]');if(cellBtn){cellBtn.style.display=bs.cell?'':'none';cellBtn.classList.toggle('on',!!bs.cell);bs.setCell(!!bs.cell);}
+    const bondBtn=$('[data-stg="bonds"]'),hasBonds=!!(bs.bonds&&bs.bonds.children.length);if(bondBtn){bondBtn.style.display=hasBonds?'':'none';bondBtn.classList.toggle('on',hasBonds);bs.setBonds(hasBonds);}
+  }
+  $('#view-modes').style.display='none';const stgEl=$('#struct-toggles');if(stgEl)stgEl.style.display='flex';
+  const sd=STRUCTURE_DATA[id];$('#structure-badge').textContent=`${sd.structureType} · ${sd.exact?'crystallographic':'representative model'}`;
+  $('#structure-legend').innerHTML=(this.structure?this.structure.legend:[]).map(e=>`<span class="structure-key" title="${e.role}"><i style="background:${e.color}"></i><b>${e.symbol}</b>${e.name}</span>`).join('')||'<span class="structure-key">Structure data unavailable</span>';
   this.refreshPanels(); },
 refreshPanels(){ const m=MATERIALS[this.id]; const disc=!!S.discovered[this.id];
   $('#cx-name').textContent=m.name.toUpperCase();
@@ -347,9 +338,11 @@ refreshPanels(){ const m=MATERIALS[this.id]; const disc=!!S.discovered[this.id];
     (stx?`<div class="divider"></div>
     <div class="eyebrow" style="margin-bottom:6px">Structure model shown</div>
     <p style="font-size:11.5px;line-height:1.6;color:var(--pearl-dim)">${stx.repr}</p>
+    <div class="kv"><span>Model status</span><b>${stx.exact?'Crystallographic':'Representative'}</b></div>
+    <div class="kv"><span>Composition shown</span><b style="max-width:62%;text-align:right;font-size:10.5px">${stx.composition}</b></div>
     <div class="kv"><span>Phase</span><b style="max-width:62%;text-align:right;font-size:10.5px">${stx.phase}</b></div>
     <div class="kv"><span>Scale</span><b>${stx.scale}</b></div>
-    <p class="tiny dim" style="margin-top:8px;line-height:1.55">${stx.caveat}<br><i>${stx.source}</i></p>`:'');
+    <p class="tiny dim" style="margin-top:8px;line-height:1.55">${stx.caveat}<br><b>Source:</b> <a href="${stx.sourceUrl}" target="_blank" rel="noopener">${stx.source}</a></p>`:'');
   $('#cx-synth').innerHTML=m.synth.map(s=>`<div style="padding:8px 0;border-bottom:1px solid rgba(246,242,234,.05)">
     <b style="font-size:11px;letter-spacing:.14em;text-transform:uppercase">${s.n}</b>
     <p class="tiny dim" style="margin-top:4px;line-height:1.55">${s.d}</p></div>`).join('');
