@@ -10,6 +10,16 @@ MATERIDEX combines a scientific material codex with a navigable universe. Its cu
 
 The experience is designed for open exploration. Users can move freely between the Material Index, World Atlas, Codex, Laboratory, Compare, Collection, Challenges and Expeditions. Optional expeditions provide direction and rewards without restricting access to the core tools.
 
+## Explore MATERIDEX
+
+![The MATERIDEX World Atlas showing its interactive material realms](assets/readme/world_atlas.png)
+
+*The World Atlas presents material families as an explorable constellation of distinct realms.*
+
+![The graphene codex entry showing its hexagonal atomic structure and properties](assets/readme/graphene_codex.png)
+
+*The Material Codex combines an interactive scientific structure with properties, provenance and progression.*
+
 ## Main features
 
 1. **Material Codex** presents identity, bonding, structure, synthesis, properties, applications, related materials and source information for every included material.
