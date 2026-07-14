@@ -82,7 +82,8 @@ window.addEventListener('load',()=>{
   document.title=BRAND.name+' — '+BRAND.sub;
   $('#app').classList.add('ready');
   // deep-link default screen
-  if(S.onboarded){ nav('core'); } else { nav('codex'); Onboard.start(false); }
+  if(S.onboarded&&S.onboardingChoiceSeen){ nav('core'); }
+  else{ nav('codex'); Onboard.start(!!S.onboarded); }
   // graceful three.js absence note
   if(!HAS3D) toast('3D acceleration unavailable — running in flat-lattice mode','verm','alert',6000);
 });

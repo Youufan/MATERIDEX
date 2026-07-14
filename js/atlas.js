@@ -213,9 +213,9 @@ select(key){ this.sel=key; this.focus=key; Sound.glass();
         <span class="mono tiny dim" style="margin-left:auto">${m.code}</span></div>`; }).join('')}</div>
     <div class="ctl-group" style="margin:16px 4px">
       <button class="ctl sm primary" id="realm-enter">Enter region</button>
-      ${key==='nexus'?'<button class="ctl sm" id="realm-exp">Set expedition</button>':''}
+      ${key==='nexus'?'<button class="ctl sm" id="realm-exp">Track optional expedition</button>':''}
       <button class="ctl sm" id="realm-close">Close</button></div>
-    ${key!=='nexus'?'<p class="tiny dim" style="padding:0 4px">Expeditions to this realm unlock at higher explorer ranks.</p>':''}`;
+    ${key!=='nexus'?'<p class="tiny dim" style="padding:0 4px">Explore this realm freely. No guided expedition is currently catalogued here.</p>':''}`;
   $$('#realm-panel [data-ra]').forEach(el=>el.addEventListener('click',()=>{ Codex.show(el.dataset.ra); nav('codex'); }));
   $('#realm-enter').addEventListener('click',()=>{ nav('index'); $('#idx-search').value='';
     Constellation.filters.family.clear();
@@ -223,7 +223,7 @@ select(key){ this.sel=key; this.focus=key; Sound.glass();
     Object.entries(FAMILIES).forEach(([fk,f],i)=>{ if(f.region===key){ Constellation.filters.family.add(fk);
       $$('#flt-family .chip')[i].classList.add('on'); } });
     Constellation.applyFilters(); toast(`Entering ${R.name} — constellation filtered`); });
-  if($('#realm-exp')) $('#realm-exp').addEventListener('click',()=>nav('expedition'));
+  if($('#realm-exp')) $('#realm-exp').addEventListener('click',()=>{ if(window.Quests) Quests.trackArc('first'); nav('expedition'); });
   $('#realm-close').addEventListener('click',()=>this.closePanel());
   /* mini art */
   const rc=$('#realm-art-cv'); if(rc){ const rx=rc.getContext('2d'); const col=R.color;

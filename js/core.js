@@ -10,13 +10,14 @@ const PR = Math.min(window.devicePixelRatio||1, 2);
 /* ---------- persistent state ---------- */
 const SAVE_KEY='materidex.save.v1';
 const DEFAULT_STATE=()=>({
-  ver:1, name:'ALICE', designation:'07', onboarded:false,
+  ver:1, name:'ALICE', designation:'07', onboarded:false, onboardingChoiceSeen:false,
   xp:0, credits:600, streak:1, lastDay:new Date().toDateString(),
   discovered:{}, mastery:{}, dupes:{}, favs:{}, tracked:{},
   scans:0, sims:0, axisPairs:[], achievements:{}, questsDone:{},
   savedSearches:[], recentViewed:[], savedLoadouts:[], simResults:[],
   loadoutSlots:{}, mitigations:{}, compareSel:['cfrp','ti64','alli'],
   regionsVisited:{}, expeditionsDone:0, markedLocations:[],
+  trackedArc:null, arcProgress:{},
   log:[], settings:{sound:true, music:true, motion:'full', fx:'high', textsize:'normal', units:'si', autosave:true, colorassist:false},
 });
 let S = DEFAULT_STATE();
@@ -132,7 +133,6 @@ const SCREENS={core:'scr-core',codex:'scr-codex',index:'scr-index',atlas:'scr-at
   achievements:'scr-achievements',settings:'scr-settings'};
 const SCREEN_HOOKS={};   // populated by modules: {enter(),exit()}
 function nav(to){ if(!SCREENS[to]) return;
-  if(window.Quests&&Quests.canNav&&!Quests.canNav(to)){ Quests.lockedNav(to); return; }
   const from=CURRENT; CURRENT=to; Sound.click();
   if(window.Quests&&Quests.event) Quests.event('nav',{to});
   $$('.screen').forEach(sc=>sc.classList.remove('active'));

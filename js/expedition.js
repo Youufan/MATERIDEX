@@ -45,7 +45,11 @@ init(){ this.wrap=$('#exp-stage'); this.cv=$('#exp-canvas'); if(!this.cv) return
   this.buildLattice();
   $('#exp-back').addEventListener('click',()=>this.goStep(Math.max(0,this.step-1)));
   $('#exp-restart').addEventListener('click',()=>this.restart(true));
+  $('#exp-track').addEventListener('click',()=>{ if(!window.Quests) return;
+    if(S.trackedArc==='first') Quests.untrackArc(); else Quests.trackArc('first');
+    this.syncTrackButton(); });
   $('#exp-exit').addEventListener('click',()=>nav('core'));
+  this.syncTrackButton();
   this.goStep(this.step,true);
   this.loop(); },
 restoreState(){ const sv=S.expedition;
@@ -55,6 +59,8 @@ restoreState(){ const sv=S.expedition;
   else S.expedition={v:2,step:0,stress:this.stress,answered:false,strategy:null,done:false}; },
 persist(){ S.expedition={v:2,step:this.step,stress:this.stress,answered:this.answered,
     strategy:this.strategy,done:this.done}; save(); },
+syncTrackButton(){ const b=$('#exp-track'); if(!b) return;
+  const on=S.trackedArc==='first'; b.textContent=on?'Untrack expedition':'Track expedition'; b.classList.toggle('primary',on); },
 restart(confirm){ if(confirm&&!this.done&&(this.stress.moist||this.answered)){
     openModal(`<div class="panel-title">Restart investigation</div><div class="panel-body">
       <p style="font-size:13px;line-height:1.7">Reset the specimen and start the investigation from the beginning?</p>
@@ -278,7 +284,7 @@ conclude(){ this.done=true; this.persist(); this.goStep(5);
   discover('perovskite','Perovskite Stability Investigation');
   grant('bandgap');
   addXP(150,'· investigation complete');
-  logEntry(`Perovskite Stability Problem concluded — strategy: ${this.solutions()[this.strategy].n}. Verified MAPbI₃ entry unlocked.`,'opal');
+  logEntry(`Perovskite Stability Problem concluded — strategy: ${this.solutions()[this.strategy].n}. MAPbI₃ field note archived.`,'opal');
   if(window.Quests) setTimeout(()=>Quests.event('expedition',{success:true}),500); },
 renderConclusion(){ const T=$('#exp-task'); const s2=this.solutions()[this.strategy||0];
   const outcome=[
@@ -295,13 +301,13 @@ renderConclusion(){ const T=$('#exp-task'); const s2=this.solutions()[this.strat
     volatile organic cation. Durable perovskite photovoltaics protect that weakness twice: a tougher composition
     inside, a moisture barrier outside.</div>
   <div class="row wrap" style="gap:8px;margin:6px 0">
-    <span class="chip on">Verified MAPbI₃ entry unlocked</span>
+    <span class="chip on">MAPbI₃ field note archived</span>
     <span class="chip on">+150 XP</span><span class="chip on">Violet Bandgap sigil</span></div>
   <details class="exp-src"><summary>Sources & evidence (${EXP_SCI.sources.length})</summary>
     ${EXP_SCI.sources.map(([s3,w2])=>`<p class="tiny dim">· ${s3} — <i>${w2}</i></p>`).join('')}
     <p class="tiny dim" style="margin-top:6px">Lattice animation is a labelled 2D schematic of mechanism, not a molecular-dynamics simulation. Property bars are qualitative educational indicators.</p></details>
   <div class="ctl-group" style="margin-top:14px">
-    <button class="ctl primary" id="exp-openentry">Open verified entry</button>
+    <button class="ctl primary" id="exp-openentry">Open MAPbI₃ entry</button>
     <button class="ctl" id="exp-tocore">Return to Research Core</button>
     <button class="ctl" id="exp-again">Restart investigation</button></div>`;
   $('#exp-openentry').addEventListener('click',()=>{ Codex.show('perovskite'); nav('codex'); });

@@ -79,20 +79,14 @@ buildSheet(scene){ const N=420, chaos=new Float32Array(N*3), latt=new Float32Arr
 wire(){
   document.addEventListener('click',e=>{ if(e.target.closest('[data-obnext]')){
     if(this.step===0) this.go(1);
-    else if(this.step===3) this.finish(); } });
-  $('#ob-skip').addEventListener('click',()=>this.finish());
+  } else{ const choice=e.target.closest('[data-obchoice]'); if(choice) this.finish(choice.dataset.obchoice); } });
+  $('#ob-skip').addEventListener('click',()=>this.finish('free'));
   $('#ob-name-go').addEventListener('click',()=>this.initialise());
   const inp=$('#ob-name');
   inp.addEventListener('keydown',e=>{ if(e.key==='Enter') this.initialise(); });
   inp.addEventListener('input',()=>{ Sound.tone(700+inp.value.length*60,.08,'sine',.25);
     this.coreTarget=.5+inp.value.length*.06;
     this.drawConstellation(inp.value,false); });
-  const hz=$('#ob-hold-zone');
-  const down=()=>{ this.holding=true; }; const up=()=>{ this.holding=false; };
-  hz.addEventListener('pointerdown',down); hz.addEventListener('pointerup',up);
-  hz.addEventListener('pointerleave',up);
-  hz.addEventListener('keydown',e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); this.holding=true; } });
-  hz.addEventListener('keyup',()=>{ this.holding=false; });
   window.addEventListener('pointermove',e=>{ this.mx=(e.clientX/innerWidth-.5)*2; this.my=(e.clientY/innerHeight-.5)*2; });
 },
 
@@ -157,16 +151,15 @@ pulse(){ if(!this.st) return;
 loop(){ if(!this.active) return;
   requestAnimationFrame(()=>this.loop());
   const rm=document.documentElement.dataset.motion==='reduced';
-  // hold-to-scan progress (works with or without WebGL)
+  // automatic cinematic scan (works with or without WebGL)
   if(this.step===2){
-    if(this.holding&&this.scanP<1){ this.scanP=Math.min(1,this.scanP+.011);
+    if(this.scanP<1){ this.scanP=Math.min(1,this.scanP+.012);
       if(Math.random()<.22) Sound.scan(this.scanP); }
-    else if(!this.holding&&this.scanP<1&&this.scanP>0) this.scanP=Math.max(0,this.scanP-.005);
     const hz=$('#ob-hold-zone'); const p=this.scanP;
     hz.style.background=`conic-gradient(rgba(147,220,244,.85) ${p*360}deg, rgba(147,220,244,.08) ${p*360}deg)`;
     hz.style.webkitMask='radial-gradient(circle, transparent 63%, #fff 64%, #fff 68%, transparent 69%)';
     hz.style.mask='radial-gradient(circle, transparent 63%, #fff 64%, #fff 68%, transparent 69%)';
-    $('#ob-scan-hint').textContent= p>=1? 'Lattice resolved.' : p>0? 'Scanning… '+Math.round(p*100)+'%' : 'Press and hold the specimen';
+    $('#ob-scan-hint').textContent= p>=1? 'Lattice resolved.' : 'Resolving lattice… '+Math.round(p*100)+'%';
     if(p>=1&&!this._scanDone){ this._scanDone=true; this.flashV=.8; Sound.discover();
       setTimeout(()=>this.go(3),850); } }
   // flash decay
@@ -214,13 +207,17 @@ loop(){ if(!this.active) return;
   st.camera.lookAt(0,0,this.step===2?6:0);
   st.render(); },
 
-finish(){ this.active=false; clearInterval(this._bm);
+finish(choice='free'){ this.active=false; clearInterval(this._bm);
   $('#onboard').classList.add('hidden');
+  S.onboardingChoiceSeen=true;
   if(!S.onboarded){ S.onboarded=true;
     if(!S.discovered.graphene){ discover('graphene','first structural scan'); S.scans++;
       addMastery('graphene',120); checkAchievements(); }
     logEntry('Research Core initialised. Identity confirmed: '+S.name+' // Researcher '+S.designation+'.');
     save();
-    Codex.show('graphene'); nav('codex');
-    setTimeout(()=>{ if(window.Quests) Quests.askLatticeQuestion(); },1100); }
-  else nav('core'); } };
+    if(choice==='expedition'&&window.Quests){ Quests.trackArc('first'); Codex.show('graphene'); nav('codex');
+      setTimeout(()=>Quests.askLatticeQuestion(),700); }
+    else nav('core'); }
+  else if(choice==='expedition'&&window.Quests){ Quests.trackArc('first'); nav('expedition'); }
+  else nav('core');
+  save(); } };
