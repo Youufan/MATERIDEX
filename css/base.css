@@ -175,7 +175,8 @@ html[data-motion="reduced"] .screen{transition-duration:.15s;transform:none;filt
 
 /* ───────────── typography ───────────── */
 .display{font-family:var(--serif);font-weight:400;letter-spacing:.02em}
-.mega{font-family:var(--serif);font-weight:300;letter-spacing:.04em;line-height:.92;
+.mega{display:inline-block;font-family:var(--serif);font-weight:300;letter-spacing:.04em;line-height:.92;
+  padding:0 .04em .14em;margin-bottom:-.14em;
   background:linear-gradient(178deg,#fff 8%,var(--pearl) 40%,#b9b2d2 90%);
   -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
   filter:drop-shadow(0 0 44px rgba(139,108,240,.4))}
