@@ -16,6 +16,7 @@ const DEFAULT_STATE=()=>({
   scans:0, sims:0, axisPairs:[], achievements:{}, questsDone:{},
   savedSearches:[], recentViewed:[], savedLoadouts:[], simResults:[],
   loadoutSlots:{}, mitigations:{}, compareSel:['cfrp','ti64','alli'],
+  msteps:{}, flags:{},
   regionsVisited:{}, expeditionsDone:0, markedLocations:[],
   trackedArc:null, arcProgress:{},
   log:[], settings:{sound:true, music:true, motion:'full', fx:'high', textsize:'normal', units:'si', autosave:true, colorassist:false},
@@ -108,8 +109,12 @@ function discover(id,src){ const m=MATERIALS[id]; if(!m) return;
   renderCollection(); renderAtlasStatus(); renderHUD(); checkAchievements(); save();
   if(window.Quests&&Quests.event) Quests.event('discover',{id});
   const nb=$('#coll-badge'); if(nb){ nb.style.display='flex'; nb.textContent=Object.keys(S.discovered).length; } }
-function addMastery(id,n){ S.mastery[id]=(S.mastery[id]||0)+n; save(); }
-function masteryLevel(id){ const xp=S.mastery[id]||0; return {lv:Math.min(6,Math.floor(xp/400)), xp:xp%400, tot:xp}; }
+const MASTERY_XP_PER_LEVEL=400,MASTERY_MAX_LEVEL=6,MASTERY_MAX_XP=MASTERY_XP_PER_LEVEL*MASTERY_MAX_LEVEL;
+function addMastery(id,n){ S.mastery[id]=Math.min(MASTERY_MAX_XP,Math.max(0,(S.mastery[id]||0)+n)); save(); }
+function masteryLevel(id){ const tot=Math.min(MASTERY_MAX_XP,Math.max(0,S.mastery[id]||0)),lv=Math.min(MASTERY_MAX_LEVEL,Math.floor(tot/MASTERY_XP_PER_LEVEL)),maxed=lv===MASTERY_MAX_LEVEL;
+  const xp=maxed?MASTERY_XP_PER_LEVEL:tot%MASTERY_XP_PER_LEVEL;return {lv,xp,tot,maxed,pct:maxed?100:xp/MASTERY_XP_PER_LEVEL*100}; }
+function materialMilestones(id){ const m=(S.msteps&&S.msteps[id])||{};return [!!S.discovered[id],!!m.scan,!!m.bond,!!m.sim,!!m.cmp,!!m.apply||Object.values(S.loadoutSlots||{}).includes(id),!!m.quiz]; }
+function materialProgress(id){ const steps=materialMilestones(id),done=steps.filter(Boolean).length;return {steps,done,total:steps.length,pct:Math.round(done/steps.length*100)}; }
 const MASTERY_NAMES=['Untouched','Novice','Apprentice','Adept','Advanced','Expert','Mastered'];
 
 /* ---------- HUD ---------- */

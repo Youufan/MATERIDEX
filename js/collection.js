@@ -160,7 +160,7 @@ function collDetail(id){ const m=MATERIALS[id]; const el=$('#coll-detail'); cons
     <div class="kv"><span>Family</span><b>${FAMILIES[m.family].name}</b></div>
     <div class="kv"><span>Duplicates</span><b>${S.dupes[id]||0}</b></div>
     <div class="eyebrow" style="margin:12px 0 8px">Mastery challenges</div>
-    <div class="kv"><span>Scan the structure</span><b>${S.discovered[id]?'✓':'—'}</b></div>
+    <div class="kv"><span>Scan the structure</span><b>${S.msteps&&S.msteps[id]&&S.msteps[id].scan?'✓':'—'}</b></div>
     <div class="kv"><span>Run a lab protocol</span><b>${S.simResults.some(r=>r.mat===id)?'✓':'—'}</b></div>
     <div class="kv"><span>Use in a loadout</span><b>${Object.values(S.loadoutSlots).includes(id)?'✓':'—'}</b></div>
     <div class="ctl-group" style="margin-top:14px">

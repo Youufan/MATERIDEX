@@ -212,6 +212,7 @@ finish(choice='free'){ this.active=false; clearInterval(this._bm);
   S.onboardingChoiceSeen=true;
   if(!S.onboarded){ S.onboarded=true;
     if(!S.discovered.graphene){ discover('graphene','first structural scan'); S.scans++;
+      S.msteps=S.msteps||{};S.msteps.graphene=S.msteps.graphene||{};S.msteps.graphene.scan=1;
       addMastery('graphene',120); checkAchievements(); }
     logEntry('Research Core initialised. Identity confirmed: '+S.name+' // Researcher '+S.designation+'.');
     save();

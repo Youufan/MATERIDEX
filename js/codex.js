@@ -298,7 +298,7 @@ scan(){ if(this._scanning) return; const id=this.id,m=MATERIALS[id]; this._scann
   let p=0; const iv=setInterval(()=>{ p+=2+Math.random()*2.4;
     if(p>=100){ p=100; clearInterval(iv); setTimeout(()=>{ ov.classList.remove('on'); this._scanning=false;
       S.scans++; const first=!S.discovered[id];
-      discover(id,'structural scan'); addMastery(id,120); if(!first) addXP(30,'· rescan calibration');
+      discover(id,'structural scan'); S.msteps=S.msteps||{};S.msteps[id]=S.msteps[id]||{};S.msteps[id].scan=1;addMastery(id,120); if(!first) addXP(30,'· rescan calibration');
       logEntry(`Structural scan complete — ${m.name}. New structural relationship mapped.`);
       checkAchievements(); this.refreshPanels(); Constellation.pulse(id); },260); }
     arc.style.strokeDashoffset=276.5*(1-p/100); pct.textContent=Math.floor(p)+'%';
@@ -323,11 +323,11 @@ refreshPanels(){ const m=MATERIALS[this.id]; const disc=!!S.discovered[this.id];
   const rr=$('#cx-rarity'); rr.textContent=m.rarity; rr.className='rarity '+m.rarity;
   const ml=masteryLevel(this.id);
   $('#cx-mastery-lv').textContent=`Lv. ${ml.lv} — ${MASTERY_NAMES[ml.lv]}`;
-  $('#cx-mastery-xp').textContent=`${ml.xp} / 400 XP`;
-  $('#cx-mastery-bar').style.width=(ml.xp/4)+'%';
-  const discPct = disc? Math.min(100,40+ml.lv*10+(S.mastery[this.id]?20:0)) : 0;
+  $('#cx-mastery-xp').textContent=ml.maxed?'Complete':`${ml.xp} / ${MASTERY_XP_PER_LEVEL} XP`;
+  $('#cx-mastery-bar').style.width=ml.pct+'%';
+  const progress=materialProgress(this.id),discPct=progress.pct;
   $('#cx-disc-pct').textContent=discPct+'%';
-  $('#cx-disc-lbl').textContent= disc? (discPct>=100?'Discovered, scanned & catalogued':'Discovered — deepen mastery in the Lab') : 'Not yet scanned';
+  $('#cx-disc-lbl').textContent=discPct>=100?'All mastery milestones complete':disc?`${progress.done} of ${progress.total} mastery milestones`:'Not yet discovered';
   $('#cx-diamonds').innerHTML=Array.from({length:8},(_,i)=>`<i class="${i<Math.round(discPct/12.5)?'f':''}"></i>`).join('');
   $('#cx-summary').textContent= disc? m.desc : m.summary+' — scan to resolve the full entry.';
   const stx=typeof STRUCTS!=='undefined'?STRUCTS[this.id]:null;

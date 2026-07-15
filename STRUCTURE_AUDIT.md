@@ -1,6 +1,6 @@
 # MATERIDEX structure audit
 
-Generated 2026-07-14. This report covers every material in the current database. “Crystallographic” means the displayed lattice and basis are sourced. “Representative” means the model communicates chemistry or morphology without claiming a unique exact atomic arrangement.
+Generated 2026-07-15. This report covers every material in the current database. “Crystallographic” means the displayed lattice and basis are sourced. “Representative” means the model communicates chemistry or morphology without claiming a unique exact atomic arrangement.
 
 ## Validation summary
 
@@ -16,7 +16,7 @@ Generated 2026-07-14. This report covers every material in the current database.
 | cnt | layered structure | Hexagonal layered | Representative | single-wall (10,0) zigzag nanotube; C | [Saito, Dresselhaus & Dresselhaus, Physical Properties of Carbon Nanotubes (1998)](https://doi.org/10.1142/p080) | PASS | One representative chirality. |
 | diamond | crystal lattice | Diamond cubic | Crystallographic | cubic Fd-3m; C | [Materials Project mp-66, diamond C](https://optimade.materialsproject.org/v1/structures/mp-66) | PASS | None recorded |
 | aerogel | atomic network | Amorphous network | Representative | amorphous silica aerogel; SiO₂ skeleton + void | [Woignier et al., J. Sol-Gel Sci. Technol. 76, 521–532 (2015)](https://doi.org/10.1007/s10971-015-3799-7) | PASS | Pore topology depends on synthesis. |
-| mxene | layered structure | Hexagonal layered | Crystallographic | Ti₃C₂ backbone; representative O/F terminations; Ti₃C₂O₀.₅F₀.₅ (display model) | [Materials Project mp-1094034, Ti3C2 backbone](https://optimade.materialsproject.org/v1/structures/mp-1094034) | PASS | Tx chemistry is not unique. |
+| mxene | layered structure | Hexagonal layered Ti₃C₂Tₓ | Representative | Ti₃C₂Tₓ monolayer with representative mixed O, OH and F terminations; Ti₃C₂Tₓ; ordered display cell with O, OH and F on both surfaces | [Materials Project mp-1094034 Ti₃C₂ backbone; Hope et al., PCCP 18, 5099–5102 (2016), mixed F/O/OH terminations](https://doi.org/10.1039/C6CP00330C) | PASS | Termination identity, coverage and ordering vary with synthesis and environment. |
 | pedot | polymer chain | Polymer repeat unit | Representative | PEDOT:PSS blend; PEDOT repeat unit + PSS domain | [Groenendaal et al., Adv. Mater. 12, 481–494 (2000)](https://doi.org/10.1002/(SICI)1521-4095(200004)12:7%3C481::AID-ADMA481%3E3.0.CO;2-C) | PASS | Doping and domain morphology vary. |
 | liquidmetal | representative model | Representative liquid snapshot | Representative | eutectic Ga–In liquid near 298 K; Ga 75.5 wt%, In 24.5 wt% (EGaIn) | [Dickey, Adv. Mater. 29, 1606425 (2017)](https://doi.org/10.1002/adma.201606425) | PASS | Liquid coordination is time-dependent. |
 | silicon | crystal lattice | Diamond cubic | Crystallographic | cubic Fd-3m; Si | [Materials Project mp-149, silicon](https://optimade.materialsproject.org/v1/structures/mp-149) | PASS | None recorded |
@@ -41,12 +41,12 @@ Generated 2026-07-14. This report covers every material in the current database.
 
 ## Validation rules
 
-The automated audit flags missing element identities or coordinates, unknown representation/structure types, invalid lattice vectors, generic fallbacks, identical colours for multiple elements, malformed or unknown-element bond rules, missing provenance, and representative models incorrectly claimed as exact. Bonds are rendered only from explicit indexed connectivity or a declared element-pair/distance/coordination rule.
+The automated audit flags missing element identities or coordinates, unknown representation/structure types, invalid lattice vectors, generic fallbacks, identical colours for multiple elements, malformed or unknown-element bond rules, missing provenance, representative models incorrectly claimed as exact, and model geometry that conflicts with the declared archetype. Ti3C2Tx additionally requires the Ti-C-Ti-C-Ti stack and O, OH and F terminations. Bonds are rendered only from explicit indexed connectivity or a declared element-pair/distance/coordination rule.
 
 ## Scientific limitations
 
-YSZ is a declared 10.3 mol% Y2O3 representative cubic defect model (Zr26Y6O61): six Y substitutions and three charge-compensating oxygen vacancies in a 2×2×2 fluorite conventional supercell. The particular defect ordering is not unique. MAPbI3 uses the named 400 K P4mm phase and an idealized methylammonium orientation. Alloy solid solutions, precipitate populations, polymer morphology, liquid snapshots, glasses, aerogels, hydrogels and composites are explicitly representative. They are not presented as diffraction-refined exact structures.
+YSZ is a declared 10.3 mol% Y2O3 representative cubic defect model (Zr26Y6O61): six Y substitutions and three charge-compensating oxygen vacancies in a 2×2×2 fluorite conventional supercell. The particular defect ordering is not unique. MAPbI3 uses the named 400 K P4mm phase and an idealized methylammonium orientation. Ti3C2Tx uses a sourced backbone with an ordered representative mixed-termination display cell; actual termination coverage and distribution vary. Alloy solid solutions, precipitate populations, polymer morphology, liquid snapshots, glasses, aerogels, hydrogels and composites are explicitly representative. They are not presented as diffraction-refined exact structures.
 
-## Visual inspection
+## Render construction validation
 
-All 26 entries were opened individually in the running application at production viewport size. The audit confirmed that every model rendered, its declared structure label and legend were visible, multi-element models retained distinct colours, crystalline models showed a unit-cell boundary, representative models did not show a false unit cell, and no entry displayed the generic white-sphere fallback. Rotation/zoom listeners and instanced-atom hover metadata remain attached to the shared viewer.
+All 26 shared render models are constructed in the automated production check without an unavailable or generic fallback. Crystalline and layered records require repeat boundaries, element legends are generated from rendered species, and the shared viewer retains rotation, zoom and instanced-atom hover metadata. Visual viewport review remains a separate manual quality check.

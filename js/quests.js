@@ -86,6 +86,7 @@ init(){ // migrations
   }
   if(S.trackedArc===undefined) S.trackedArc=null;
   if(!S.msteps) S.msteps={};
+  Object.keys(S.discovered||{}).forEach(id=>{S.msteps[id]=S.msteps[id]||{};if((S.mastery[id]||0)>0&&S.msteps[id].scan===undefined)S.msteps[id].scan=1;});
   S.mode='free';
   if(!S.flags) S.flags={};
   this.reconcileExistingProgress();
@@ -217,11 +218,8 @@ masteryHooks(type,d){ const ms=(id)=>{ S.msteps[id]=S.msteps[id]||{}; return S.m
   if(type==='compare') d.ids.forEach(id=>{ if(MATERIALS[id]) ms(id).cmp=1; });
   if(type==='loadout-assign') ms(d.id).apply=1;
   if(type==='defect-inspect') ms(d.id).defect=1; },
-masteryPathHTML(id){ const m=S.msteps[id]||{};
-  const steps=[['Discover',!!S.discovered[id]],['Scan structure',(S.mastery[id]||0)>0],
-    ['Inspect bonding (datasheet)',!!m.bond],['Run a Lab protocol',!!m.sim],
-    ['Compare with another material',!!m.cmp],['Apply in a loadout or challenge',!!m.apply||!!Object.values(S.loadoutSlots||{}).includes(id)],
-    ['Mastery question',!!m.quiz]];
+masteryPathHTML(id){ const done=materialMilestones(id);
+  const steps=['Discover','Scan structure','Inspect bonding (datasheet)','Run a Lab protocol','Compare with another material','Apply in a loadout or challenge','Mastery question'].map((label,i)=>[label,done[i]]);
   return `<div class="eyebrow" style="margin:12px 0 6px">Mastery pathway</div>`+
     steps.map(([t,done],i)=>`<div class="mpath-step ${done?'done':''}" ${i===6&&!done?'data-mq="'+id+'"':''}>
       <i>${done?'✦':'◇'}</i><span>${t}</span></div>`).join(''); },
