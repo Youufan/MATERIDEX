@@ -241,7 +241,8 @@ renderCompare(){ const ids=S.compareSel.filter(id=>MATERIALS[id]);
   tb.innerHTML=`<tr><th>Property</th>${ids.map(id=>`<th style="color:${MATERIALS[id].color}">${MATERIALS[id].name}</th>`).join('')}</tr>`+
     CMP_ROWS.map(([label,fn,fmtf,hiGood])=>{ const vals=ids.map(id=>fn(MATERIALS[id]));
       const best= hiGood? Math.max(...vals) : Math.min(...vals);
-      return `<tr><td>${label}</td>${vals.map(v=>`<td class="${v===best&&ids.length>1?'best':''}">${fmtf(v)}</td>`).join('')}</tr>`; }).join(''); },
+      return `<tr><td>${label}</td>${vals.map(v=>`<td class="${v===best&&ids.length>1?'best':''}">${fmtf(v)}</td>`).join('')}</tr>`; }).join('');
+  if(window.FirstMission) FirstMission.renderComparison(); },
 test(){ this.recalc(); const o=this.outcome; Sound.glass();
   const verdict= o.nUsed<4? 'Incomplete — assign at least nose, skin, frame and shield before a meaningful test.' :
     o.unres? `Structurally ${o.safety>=1?'sound':'marginal'}, but ${o.unres} unresolved interface/thermal ${o.unres>1?'risks':'risk'} would fail certification.` :

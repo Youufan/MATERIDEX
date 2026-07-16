@@ -126,6 +126,7 @@ openPicker(){ openModal(`<div class="panel-title">Choose an optional expedition<
 
 /* ---------- event bus — every system reports here ---------- */
 event(type,data={}){
+  if(window.FirstMission&&FirstMission.event) FirstMission.event(type,data);
   this.masteryHooks(type,data);
   const hits=[];
   ARCS.forEach(a=>{ const p=this.progress(a);
@@ -246,6 +247,8 @@ masteryQuiz(id){ const m=MATERIALS[id];
 /* ---------- RESEARCH CORE home screen ---------- */
 function renderCore(){ const el=$('#core-body'); if(!el) return;
   const a=Quests.arc(), st=Quests.step();
+  const fm=window.FirstMission?FirstMission.state():{status:'not-started'};
+  const fmOpen=fm.status==='active'||fm.status==='paused';
   const ap=a?Quests.progress(a):null;
   const nDisc=Object.keys(S.discovered).length;
   const {r,next}=rankOf(S.xp);
@@ -257,10 +260,11 @@ function renderCore(){ const el=$('#core-body'); if(!el) return;
   el.innerHTML=`
   <div id="core-hero" class="panel">
     <div class="panel-body" style="padding:26px 28px 24px">
-      <div class="eyebrow" style="margin-bottom:10px">${a? 'Optional expedition tracked — '+a.n : 'Open exploration'}</div>
-      <h2 class="display" style="font-size:clamp(24px,2.6vw,34px);line-height:1.25;max-width:600px">${st? st.t : a? a.done : 'Every core instrument is ready. Follow your curiosity in any direction.'}</h2>
-      ${st?`<p class="tiny dim" style="margin:10px 0 16px">${st.hint||''} Progress is recognised even when you explore elsewhere.</p>`:''}
+      <div class="eyebrow" style="margin-bottom:10px">${fmOpen?(fm.status==='active'?'Guided Mission active':'Guided Mission paused'):a? 'Optional expedition tracked — '+a.n : 'Open exploration'}</div>
+      <h2 class="display" style="font-size:clamp(24px,2.6vw,34px);line-height:1.25;max-width:680px">${fmOpen?'Select the best material for a lightweight, conductive wearable device.':st? st.t : a? a.done : 'Every core instrument is ready. Follow your curiosity in any direction.'}</h2>
+      ${fmOpen?'<p class="tiny dim" style="margin:10px 0 16px">Inspect structure → test behaviour → compare evidence → make a defensible selection. Completed actions persist automatically.</p>':st?`<p class="tiny dim" style="margin:10px 0 16px">${st.hint||''} Progress is recognised even when you explore elsewhere.</p>`:''}
       <div class="row wrap" style="gap:10px;margin-top:14px">
+        ${fmOpen?`<button class="ctl primary" id="core-first-mission">${fm.status==='active'?'Continue First Mission':'Resume First Mission'}</button>`:fm.status==='not-started'?'<button class="ctl primary" id="core-first-mission">Begin First Mission</button>':''}
         ${st?'<button class="ctl" id="core-go">Continue expedition</button>':''}
         <button class="ctl primary" data-nav-go="index">Explore the Index</button>
         <button class="ctl primary" data-nav-go="atlas">Open the Atlas</button>
@@ -305,6 +309,7 @@ function renderCore(){ const el=$('#core-body'); if(!el) return;
     </div></div>
   </div>`;
   const go=$('#core-go'); if(go) go.addEventListener('click',()=>{ const s2=Quests.step(); if(s2) s2.go(); });
+  const fmGo=$('#core-first-mission'); if(fmGo) fmGo.addEventListener('click',()=>{ const state=FirstMission.state();if(state.status==='active')FirstMission.goCurrent();else if(state.status==='paused')FirstMission.resume();else FirstMission.begin(); });
   const ex=$('#core-expeditions'); if(ex) ex.addEventListener('click',()=>Quests.openPicker());
   const show=$('#core-showtracker'); if(show) show.addEventListener('click',()=>{ S.flags.qtDismissed=false; save(); Quests.renderTracker(); renderCore(); });
   const ql=$('#core-quicklab'); if(ql) ql.addEventListener('click',()=>nav('lab'));

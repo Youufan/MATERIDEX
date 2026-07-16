@@ -19,6 +19,7 @@ const DEFAULT_STATE=()=>({
   msteps:{}, flags:{},
   regionsVisited:{}, expeditionsDone:0, markedLocations:[],
   trackedArc:null, arcProgress:{},
+  firstMission:{status:'not-started',step:0,insights:{},tested:false,compared:false,decision:null,screen:'core',lastLearned:''},
   log:[], settings:{sound:true, music:true, motion:'full', fx:'high', textsize:'normal', units:'si', autosave:true, colorassist:false},
 });
 let S = DEFAULT_STATE();
@@ -138,6 +139,11 @@ const SCREENS={core:'scr-core',codex:'scr-codex',index:'scr-index',atlas:'scr-at
   achievements:'scr-achievements',settings:'scr-settings'};
 const SCREEN_HOOKS={};   // populated by modules: {enter(),exit()}
 function nav(to){ if(!SCREENS[to]) return;
+  if(window.FirstMission&&FirstMission.active()){
+    const step=FirstMission.state().step,allowed=new Set(['core','codex']);
+    if(step>=3)allowed.add('lab');if(step>=4)allowed.add('loadout');if(step>=6)allowed.add('collection');
+    if(!allowed.has(to)){toast('That system is available in Free Exploration. Complete or pause the guided mission first.');return;}
+  }
   const from=CURRENT; CURRENT=to; Sound.click();
   if(window.Quests&&Quests.event) Quests.event('nav',{to});
   $$('.screen').forEach(sc=>sc.classList.remove('active'));

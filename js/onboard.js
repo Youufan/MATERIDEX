@@ -14,7 +14,7 @@ start(replay){ this.replay=replay; this.active=true; this.seq=0;
   this.loop(); },
 
 build(){ if(this.st||!HAS3D) return;
-  const st=GFX.stage($('#ob-canvas'),{bloom:1.25,fov:46}); this.st=st;
+  const st=GFX.stage($('#ob-canvas'),{bloom:.5,fov:46}); this.st=st;
   const {scene}=st;
   scene.fog=new THREE.FogExp2(0x05050e,.02);
   scene.add(new THREE.AmbientLight(0x7a72b8,.45));
@@ -23,7 +23,7 @@ build(){ if(this.st||!HAS3D) return;
   const core=new THREE.Group();
   const heart=new THREE.Mesh(new THREE.IcosahedronGeometry(1.15,2),
     new THREE.MeshPhysicalMaterial({color:0xf3eefe,metalness:.2,roughness:.08,
-      emissive:0xcabdf5,emissiveIntensity:.5,transmission:.55,transparent:true,opacity:.95,
+      emissive:0xcabdf5,emissiveIntensity:.28,transmission:.34,transparent:true,opacity:.9,
       envMapIntensity:2,clearcoat:1,flatShading:true}));
   core.add(heart); this.heart=heart;
   const shell=new THREE.Mesh(new THREE.IcosahedronGeometry(1.7,1),GFX.glass('#cdbcf7',.14));
@@ -34,7 +34,7 @@ build(){ if(this.st||!HAS3D) return;
     const ring=new THREE.Mesh(new THREE.TorusGeometry(r,.03,10,180),GFX.chrome('#d9d5e6',.18));
     ring.rotation.set(Math.PI/2+rx,0,rz); core.add(ring); this.rings.push(ring); });
   // inner particle swirl
-  const swirl=GFX.particles(240,5.5,{color:'#93dcf4',size:.34,opacity:.8});
+  const swirl=GFX.particles(180,5.5,{color:'#93dcf4',size:.3,opacity:.5});
   core.add(swirl); this.swirl=swirl;
   scene.add(core); this.core=core;
   // ── distant material realms ──
@@ -211,14 +211,13 @@ finish(choice='free'){ this.active=false; clearInterval(this._bm);
   $('#onboard').classList.add('hidden');
   S.onboardingChoiceSeen=true;
   if(!S.onboarded){ S.onboarded=true;
-    if(!S.discovered.graphene){ discover('graphene','first structural scan'); S.scans++;
+    if(choice!=='mission'&&!S.discovered.graphene){ discover('graphene','first structural scan'); S.scans++;
       S.msteps=S.msteps||{};S.msteps.graphene=S.msteps.graphene||{};S.msteps.graphene.scan=1;
       addMastery('graphene',120); checkAchievements(); }
     logEntry('Research Core initialised. Identity confirmed: '+S.name+' // Researcher '+S.designation+'.');
     save();
-    if(choice==='expedition'&&window.Quests){ Quests.trackArc('first'); Codex.show('graphene'); nav('codex');
-      setTimeout(()=>Quests.askLatticeQuestion(),700); }
+    if(choice==='mission'&&window.FirstMission) FirstMission.begin();
     else nav('core'); }
-  else if(choice==='expedition'&&window.Quests){ Quests.trackArc('first'); nav('expedition'); }
+  else if(choice==='mission'&&window.FirstMission) FirstMission.begin();
   else nav('core');
   save(); } };

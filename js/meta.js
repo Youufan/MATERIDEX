@@ -84,6 +84,7 @@ window.addEventListener('load',()=>{
   // deep-link default screen
   if(S.onboarded&&S.onboardingChoiceSeen){ nav('core'); }
   else{ nav('codex'); Onboard.start(!!S.onboarded); }
+  if(window.FirstMission) FirstMission.init();
   // graceful three.js absence note
   if(!HAS3D) toast('3D acceleration unavailable — running in flat-lattice mode','verm','alert',6000);
 });

@@ -33,8 +33,9 @@
   <div id="ob-ui">
     <div class="ob-step on" data-ob="0">
       <h1 id="ob-title">The Research Core is waking.</h1>
-      <p class="ob-sub" id="ob-boot-msg">Calibrating material space</p>
-      <button class="ctl primary" data-obnext>Initialise</button>
+      <p class="ob-sub">MATERIDEX is an interactive materials science universe where visible structure explains properties and engineering choices.</p>
+      <p class="tiny dim" id="ob-boot-msg">Calibrating material space</p>
+      <button class="ctl primary" data-obnext>Enter MATERIDEX</button>
     </div>
     <div class="ob-step" data-ob="1">
       <h1 class="display">What should Materidex call you?</h1>
@@ -52,11 +53,13 @@
       <p id="ob-scan-hint">Resolving lattice…</p>
     </div>
     <div class="ob-step" data-ob="3">
-      <h1 class="display">Lattice resolved — <span style="-webkit-text-fill-color:initial;color:var(--lilac)">Graphene</span>.</h1>
-      <p class="ob-sub">MAT-006 · Legendary · First Codex entry crystallised into your Collection<br>The universe is open. Choose a guide, or chart your own path.</p>
-      <div class="row wrap" style="justify-content:center;gap:14px">
-        <button class="ctl primary" data-obchoice="expedition">Begin Expedition</button>
-        <button class="ctl primary" data-obchoice="free">Explore Freely</button>
+      <h1 class="display">Your first engineering decision awaits.</h1>
+      <p class="ob-sub">Select the best material for a lightweight, conductive wearable device.</p>
+      <div class="ob-choice-grid">
+        <div class="ob-choice-card guided"><span class="eyebrow">Guided Mission</span><p>Inspect three structures, run a test, compare evidence and make one defensible choice.</p>
+          <button class="ctl primary" data-obchoice="mission">Begin First Mission</button></div>
+        <div class="ob-choice-card"><span class="eyebrow">Free Exploration</span><p>Open the complete Material Index, Atlas, Lab, Compare, Challenges and Expeditions immediately.</p>
+          <button class="ctl" data-obchoice="free">Explore Freely</button></div>
       </div>
     </div>
   </div>
@@ -580,6 +583,7 @@
 <script src="js/challenges.js"></script>
 <script src="js/quests.js"></script>
 <script src="js/onboard.js"></script>
+<script src="js/first-mission.js"></script>
 <script src="js/meta.js"></script>
 </body>
 </html>
