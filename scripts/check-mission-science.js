@@ -1,0 +1,18 @@
+'use strict';
+const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert');
+const root=path.join(__dirname,'..'),{STRUCTURE_DATA}=require('../js/structure-data.js');
+const dataContext={module:{exports:{}},exports:{}};vm.createContext(dataContext);
+vm.runInContext(fs.readFileSync(path.join(root,'js/data.js'),'utf8')+'\nthis.__MATERIALS=MATERIALS;',dataContext,{filename:'js/data.js'});
+const MATERIALS=dataContext.__MATERIALS,ids=['graphene','mxene','pedot'];
+ids.forEach(id=>{const m=MATERIALS[id],s=STRUCTURE_DATA[id];assert.ok(m&&s,`${id} must have material and structure data`);assert.ok(m.refs.length,`${id} must display references`);assert.ok(s.source&&s.source.citation&&s.source.url,`${id} structure needs provenance`);assert.ok(s.modellingNotes,`${id} structure needs modelling scope`);});
+assert.equal(STRUCTURE_DATA.graphene.representation,'layered structure');assert.equal(STRUCTURE_DATA.graphene.exact,true);assert.equal(STRUCTURE_DATA.graphene.atoms.length,2);
+assert.equal(STRUCTURE_DATA.mxene.representation,'layered structure');assert.equal(STRUCTURE_DATA.mxene.exact,false);assert.deepEqual(STRUCTURE_DATA.mxene.model.stack,['Ti','C','Ti','C','Ti']);assert.deepEqual(STRUCTURE_DATA.mxene.model.terminations,['O','OH','F']);
+assert.equal(STRUCTURE_DATA.pedot.representation,'polymer chain');assert.equal(STRUCTURE_DATA.pedot.exact,false);assert.equal(STRUCTURE_DATA.pedot.model.kind,'polymer');
+assert.equal(new Set(ids.map(id=>STRUCTURE_DATA[id].structureType)).size,3,'mission structures must be materially distinct');
+assert.equal(MATERIALS.graphene.sim.E,1000);assert.equal(MATERIALS.mxene.sim.E,330);assert.equal(MATERIALS.pedot.sim.E,2);
+assert.equal(MATERIALS.pedot.sim.uts,0.05,'PEDOT test strength is expressed in GPa');assert.equal(MATERIALS.pedot.sim.failStrain,0.1);
+assert.ok(MATERIALS.graphene.props.some(p=>p.k==='Electrical conductivity'&&p.u==='S/m'));
+assert.ok(MATERIALS.mxene.props.some(p=>p.k==='Electrical conductivity'&&p.u==='S/m'));
+assert.ok(MATERIALS.pedot.props.some(p=>p.k==='Electrical conductivity'&&p.u==='S/cm'));
+const mission=fs.readFileSync(path.join(root,'js/first-mission.js'),'utf8');assert.match(mission,/10–10⁵ S\/m/,'PEDOT mission comparison must convert its S/cm range consistently');assert.match(mission,/simplified educational estimate/i);assert.match(mission,/Qualitative educational decision matrix/);
+console.log('Mission science: three distinct archetypes, provenance, unit consistency, model scope and simulation contracts passed');

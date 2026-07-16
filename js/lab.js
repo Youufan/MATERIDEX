@@ -16,16 +16,19 @@ const KIND_DEFECT={hex:'vacancy defect',fibre:'fibre-break cluster',metal:'grain
 
 const Lab={ mat:'graphene', running:false, t:0, T:25, dt:.016, history:[], eventFired:false, done:false, view:'combined',
   params:{temp:300,defect:.9,layers:1,grain:27,rate:1}, mitigated:false, guided:false,
+  guidedMaterial:null,guidedOwner:null,
   defectSites:[], grains:null, fibres:null, chains:null, specks:null,
 
 /* ---------- single source of truth ---------- */
-setMaterial(id){ if(!MATERIALS[id]||!MATERIALS[id].sim){ toast('No tensile protocol for this material yet','verm','alert'); return false; }
-  if(!S.discovered[id]){ toast('Scan '+MATERIALS[id].name+' before running lab protocols','verm','alert'); return false; }
+setMaterial(id,{guided=false}={}){ if(!MATERIALS[id]||!MATERIALS[id].sim){ toast('No tensile protocol for this material yet','verm','alert'); return false; }
+  if(!S.discovered[id]&&!guided){ toast('Scan '+MATERIALS[id].name+' before running lab protocols','verm','alert'); return false; }
+  if(guided)this.guidedMaterial=id;
   this.mat=id; this.rebuildSel(); this.applyRanges(); this.reset(true); this.updateMaterialUI();
   if(window.Quests) Quests.event('lab-material',{id});
   return true; },
 rebuildSel(){ const sel=$('#lab-material'); if(!sel) return;
   const opts=MAT_LIST.filter(id=>S.discovered[id]&&MATERIALS[id].sim);
+  if(this.guidedMaterial&&MATERIALS[this.guidedMaterial]&&MATERIALS[this.guidedMaterial].sim&&!opts.includes(this.guidedMaterial))opts.push(this.guidedMaterial);
   if(!opts.length) opts.push('graphene');
   if(!opts.includes(this.mat)) this.mat=opts[0];
   sel.innerHTML=opts.map(id=>`<option value="${id}">${MATERIALS[id].name}</option>`).join('');
@@ -78,15 +81,11 @@ epsAt(t){ const M=this.model(); return (t/this.T)*M.ef*1.15; },
 init(){ this.cv=$('#lab-canvas'); this.ctx=this.cv.getContext('2d');
   this.ss=$('#chart-ss'); this.heat=$('#chart-heat');
   // view-specimen chips overlaid on stage
-  const vb=document.createElement('div');
-  vb.id='lab-viewbar';
-  vb.style.cssText='position:absolute;top:12px;left:14px;z-index:5;display:flex;gap:5px;align-items:center';
-  vb.innerHTML='<span class="eyebrow" style="margin-right:4px">View specimen</span>'+
-    ['structure','continuum','combined','damage'].map(v=>
-      `<button class="chip ${v==='combined'?'on':''}" data-labview="${v}">${v}</button>`).join('');
-  $('#lab-stage').appendChild(vb);
+  const vb=$('#lab-viewbar');
+  vb.innerHTML=['structure','continuum','combined','damage'].map(v=>
+    `<button class="chip ${v==='combined'?'on':''}" data-labview="${v}" aria-pressed="${v==='combined'}">${v}</button>`).join('');
   $$('#lab-viewbar [data-labview]').forEach(b=>b.addEventListener('click',()=>{
-    $$('#lab-viewbar .chip').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+    $$('#lab-viewbar .chip').forEach(x=>{x.classList.remove('on');x.setAttribute('aria-pressed','false');}); b.classList.add('on');b.setAttribute('aria-pressed','true');
     this.view=b.dataset.labview; Sound.click(); }));
   // controls
   $('#lc-temp').addEventListener('input',e=>{ this.params.temp=+e.target.value;
@@ -115,10 +114,14 @@ init(){ this.cv=$('#lab-canvas'); this.ctx=this.cv.getContext('2d');
   $('#lab-material').addEventListener('change',e=>this.setMaterial(e.target.value));
   this.rebuildSel(); this.applyRanges(); this.reset(true); this.updateMaterialUI();
   this.loop(); this.renderResults(); },
-setGuided(on){ this.guided=on;
+setGuided(on,id=null,owner='quest'){if(!on&&this.guidedOwner&&this.guidedOwner!==owner)return;this.guided=on;
+  this.guidedOwner=on?owner:null;
+  if(on&&id)this.guidedMaterial=id;
+  if(!on)this.guidedMaterial=null;
+  this.rebuildSel();
   const rows=$$('#lab-left .slider-row');
   rows.forEach((r,i)=>{ r.style.display=(on&&i!==1)?'none':''; });   // guided: defect density only
-  $('#lab-material').parentElement.parentElement.style.display=on?'none':''; },
+  const selector=$('#lab-material');if(selector)selector.parentElement.parentElement.style.display=on?'none':''; },
 
 /* ---------- structure seeds ---------- */
 seedStructures(){ let seed=42+this.params.defect*7+this.params.grain+this.mat.length*13;
@@ -181,7 +184,7 @@ criticalEvent(){ Sound.alert(); $('#lab-alert').classList.add('on'); $('#lab-sta
   $$('#lab-event-choices [data-ec]').forEach(b=>b.addEventListener('click',()=>CH[+b.dataset.ec].f())); },
 resume(){ $('#lab-event').style.display='none'; $('#lab-alert').classList.remove('on');
   $('#lab-stage').classList.remove('crit'); this.running=true; },
-fail(){ Sound.fail(); const M=this.model();
+fail(){ Sound.fail(); const completedId=this.mat,M=this.model();
   $('#lab-alert').classList.add('on'); $('#lab-alert-text').textContent='Fracture — specimen separated';
   const kind=structureKind(this.mat);
   $('#lab-insight').textContent=`Failure at ${(M.ef*100).toFixed(1)}% strain, ${this.fmtStress(M.uts)}. `+
@@ -191,10 +194,10 @@ fail(){ Sound.fail(); const M=this.model();
      polymer:'Crazes coalesced; the aligned chains pulled free.'}[kind]+
     (M.over?' Operating beyond the service ceiling degraded the material before the test even loaded it.':'')+
     (this.mitigated?' Reinforcing the damage site bought measurable extra life.':'');
-  S.sims++; addMastery(this.mat,60); addXP(50,'· simulation completed'); checkAchievements();
-  if(this.guided) this.setGuided(false);
-  logEntry(`Tensile protocol on ${MATERIALS[this.mat].name}: UTS ${this.fmtStress(M.uts)}, failure strain ${(M.ef*100).toFixed(1)}%.`,'verm');
-  if(window.Quests) Quests.event('sim-complete',{id:this.mat,defect:this.params.defect}); },
+  S.sims++; addMastery(completedId,60); addXP(50,'· simulation completed'); checkAchievements();
+  logEntry(`Tensile protocol on ${MATERIALS[completedId].name}: UTS ${this.fmtStress(M.uts)}, failure strain ${(M.ef*100).toFixed(1)}%.`,'verm');
+  if(window.Quests) Quests.event('sim-complete',{id:completedId,defect:this.params.defect});
+  if(this.guided) this.setGuided(false,null,this.guidedOwner); },
 fmtStress(gpa){ return gpa>=1? gpa.toFixed(1)+' GPa' : (gpa*1000).toFixed(gpa>.01?0:2)+' MPa'; },
 saveResult(){ const M=this.model();
   S.simResults.unshift({mat:this.mat,t:Date.now(),uts:M.uts,ef:M.ef,conf:M.conf,params:{...this.params},mit:this.mitigated});
@@ -220,6 +223,10 @@ renderOutcomes(){ const M=this.model(); const m=MATERIALS[this.mat];
 syncClock(){ $('#sim-clock').textContent=this.t.toFixed(3).padStart(6,'0')+' s';
   $('#sim-endclock').textContent='/ '+this.T.toFixed(0)+'.000 s';
   $('#sim-scrub').value=this.t/this.T*1000; },
+renderViewerStatus(eps){const el=$('#lab-status-text'),alert=$('#lab-alert');if(!el)return;
+  const m=MATERIALS[this.mat],state=this.done?'Completed':this.eventFired&&!this.running?'Critical damage':this.running?'Running':this.t>0?'Paused':'Idle';
+  el.textContent=`Tensile test — ${m.name} · ${state} · strain ${(eps*100).toFixed(1)}%`;
+  el.hidden=!!(alert&&alert.classList.contains('on'));},
 loop(){ requestAnimationFrame(()=>this.loop());
   if(CURRENT!=='lab') return;
   if(this.running) this.tick();
@@ -236,7 +243,8 @@ halfW(u){ const tab=.14, fil=.12;
   const d=Math.min(u-tab,1-tab-u);
   if(d<fil) return 1-(1-.62)*(0.5-0.5*Math.cos(Math.PI*d/fil));
   return .62; },
-drawStage(eps,M){ const cv=this.cv,wrap=$('#lab-stage');
+stageMetrics(w){const pad=clamp(w*.22,70,86),gripW=clamp(w*.11,34,46),arrowLen=clamp(w*.06,16,26);return{pad,gripW,arrowLen};},
+drawStage(eps,M){ const cv=this.cv,wrap=$('#lab-visual');
   const w=wrap.clientWidth,h=wrap.clientHeight; if(!w) return;
   if(cv.width!==w*PR){ cv.width=w*PR; cv.height=h*PR; }
   const ctx=this.ctx; ctx.setTransform(PR,0,0,PR,0,0); ctx.clearRect(0,0,w,h);
@@ -245,7 +253,8 @@ drawStage(eps,M){ const cv=this.cv,wrap=$('#lab-stage');
   const prog=clamp(eps/Math.max(M.ef,.0001),0,1);
   const crackP=clamp((prog-.68)/.32,0,1)**(kind==='ceramic'?.45:1);
   const sep=this.done? 14 : 0;
-  const pad=86, gW0=w-pad*2, gH0=Math.min(h-150,gW0*.3);
+  this.renderViewerStatus(eps);
+  const {pad,gripW,arrowLen}=this.stageMetrics(w),gW0=w-pad*2,gH0=Math.max(58,Math.min(h-110,gW0*.3));
   const oy=(h-gH0)/2+8;
   const gW=gW0*(1+eps*.9);                       // visible elongation (display-compressed)
   const nu = M.ductile? .42 : .18;
@@ -322,9 +331,9 @@ drawStage(eps,M){ const cv=this.cv,wrap=$('#lab-stage');
     g2.addColorStop(0,'rgba(255,120,60,.7)'); g2.addColorStop(1,'transparent');
     ctx.fillStyle=g2; ctx.beginPath(); ctx.arc(cx0,fY,30,0,7); ctx.fill(); }
   /* grips — drawn over specimen tabs */
-  [[U(0)-46,1],[U(1)+(sep?sep/2:0),-1]].forEach(([gx,dir],gi)=>{
-    if(gi===0) gx=U(0)-46+(sep?-sep/2:0);
-    const gw=46, gh=gH0+44, gy=oy-22;
+  [[U(0)-gripW,1],[U(1)+(sep?sep/2:0),-1]].forEach(([gx,dir],gi)=>{
+    if(gi===0) gx=U(0)-gripW+(sep?-sep/2:0);
+    const gw=gripW, gh=gH0+44, gy=oy-22;
     const mg=ctx.createLinearGradient(gx,gy,gx+gw,gy);
     mg.addColorStop(0,'#3a3d4c'); mg.addColorStop(.18,'#c9ccda'); mg.addColorStop(.38,'#6e7284');
     mg.addColorStop(.6,'#23252f'); mg.addColorStop(.85,'#8a8ea0'); mg.addColorStop(1,'#40434f');
@@ -342,10 +351,10 @@ drawStage(eps,M){ const cv=this.cv,wrap=$('#lab-stage');
     ctx.beginPath(); ctx.arc(gx+gw*.4,gy+gh-12,2.6,0,7); ctx.fill(); ctx.shadowBlur=0; });
   /* force vectors */
   ctx.strokeStyle='#8b6cf0'; ctx.fillStyle='#8b6cf0'; ctx.lineWidth=2;
-  const ar=(x,dir)=>{ ctx.beginPath(); ctx.moveTo(x,fY); ctx.lineTo(x+26*dir,fY); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x+26*dir,fY-5); ctx.lineTo(x+34*dir,fY); ctx.lineTo(x+26*dir,fY+5);
+  const ar=(x,dir)=>{ ctx.beginPath(); ctx.moveTo(x,fY); ctx.lineTo(x+arrowLen*dir,fY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+arrowLen*dir,fY-5); ctx.lineTo(x+(arrowLen+8)*dir,fY); ctx.lineTo(x+arrowLen*dir,fY+5);
     ctx.closePath(); ctx.fill(); };
-  ar(U(0)-56,-1); ar(U(1)+52,1); ctx.lineWidth=1;
+  ar(U(0)-gripW-10,-1); ar(U(1)+gripW+6,1); ctx.lineWidth=1;
   ctx.restore();
   /* dimension markers */
   ctx.strokeStyle='rgba(163,156,141,.35)'; ctx.fillStyle='rgba(163,156,141,.8)';
@@ -353,11 +362,9 @@ drawStage(eps,M){ const cv=this.cv,wrap=$('#lab-stage');
   ctx.beginPath(); ctx.moveTo(U(0),oy+gH0+26); ctx.lineTo(U(1),oy+gH0+26); ctx.stroke();
   ctx.fillText('L = '+(5.27*(1+eps)).toFixed(2)+' nm'+(eps>0?'  (+'+(eps*100).toFixed(1)+'%)':''),w/2,oy+gH0+40);
   const wNow=(xw(.5)*2/gH0/.62)*1.32;
-  ctx.save(); ctx.translate(U(1)+30,fY); ctx.rotate(-Math.PI/2);
+  ctx.save(); ctx.translate(Math.min(w-12,U(1)+30),fY); ctx.rotate(-Math.PI/2);
   ctx.fillText('w = '+wNow.toFixed(2)+' nm',0,0); ctx.restore();
-  /* header */
-  ctx.fillStyle='rgba(246,242,234,.85)'; ctx.font='10.5px "Archivo Narrow"';
-  ctx.fillText(('TENSILE TEST — '+m.name+'  ·  ε = '+(eps*100).toFixed(1)+'%'+(this.done?'  ·  FRACTURED':'')).toUpperCase(),w/2,26); },
+},
 
 drawInternals(ctx,kind,o){ const {U,xw,oy,gH0,eps,prog,crackP,t,rm,m}=o;
   const yC=oy+gH0/2;
@@ -468,7 +475,7 @@ drawInternals(ctx,kind,o){ const {U,xw,oy,gH0,eps,prog,crackP,t,rm,m}=o;
 drawSS(eps,M){ const cv=this.ss; const w=cv.clientWidth,h=cv.clientHeight; if(!w) return;
   if(cv.width!==w*PR){cv.width=w*PR;cv.height=h*PR;}
   const ctx=cv.getContext('2d'); ctx.setTransform(PR,0,0,PR,0,0); ctx.clearRect(0,0,w,h);
-  const pad=38, maxE=M.ef*1.2, maxS=M.uts*1.25;
+  const pad=Math.min(66,Math.max(50,w*.22)), maxE=M.ef*1.2, maxS=M.uts*1.25;
   ctx.strokeStyle='rgba(246,242,234,.12)';
   ctx.beginPath(); ctx.moveTo(pad,h-26); ctx.lineTo(w-8,h-26); ctx.moveTo(pad,h-26); ctx.lineTo(pad,26); ctx.stroke();
   ctx.fillStyle='rgba(163,156,141,.7)'; ctx.font='8px "IBM Plex Mono"'; ctx.textAlign='right';
@@ -482,8 +489,8 @@ drawSS(eps,M){ const cv=this.ss; const w=cv.clientWidth,h=cv.clientHeight; if(!w
   if(eps>=M.ef){ const x=pad+M.ef/maxE*(w-pad-14);
     ctx.setLineDash([2,3]); ctx.strokeStyle='rgba(255,75,38,.7)';
     ctx.beginPath(); ctx.moveTo(x,(h-26)-this.stressAt(M.ef*.99)/maxS*(h-56)); ctx.lineTo(x+6,h-26); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle='#ff8a70'; ctx.font='8.5px "Archivo Narrow"'; ctx.textAlign='left';
-    ctx.fillText('FRACTURE',x+8,h-56); }
+    ctx.fillStyle='#ff8a70'; ctx.font='8.5px "Archivo Narrow"';const right=x>w-72;ctx.textAlign=right?'right':'left';
+    ctx.fillText('FRACTURE',right?x-6:x+8,h-56); }
   ctx.fillStyle='rgba(235,229,215,.6)'; ctx.font='8.5px "Archivo Narrow"'; ctx.textAlign='left';
   if(M.ductile) ctx.fillText('YIELD',pad+M.ef*.35/maxE*(w-pad-14),40);
   const e=Math.min(eps,M.ef), x=pad+e/maxE*(w-pad-14), y=(h-26)-this.stressAt(e)/maxS*(h-56);

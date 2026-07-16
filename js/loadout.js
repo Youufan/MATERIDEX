@@ -242,6 +242,7 @@ renderCompare(){ const ids=S.compareSel.filter(id=>MATERIALS[id]);
     CMP_ROWS.map(([label,fn,fmtf,hiGood])=>{ const vals=ids.map(id=>fn(MATERIALS[id]));
       const best= hiGood? Math.max(...vals) : Math.min(...vals);
       return `<tr><td>${label}</td>${vals.map(v=>`<td class="${v===best&&ids.length>1?'best':''}">${fmtf(v)}</td>`).join('')}</tr>`; }).join('');
+  if(window.FirstMission) FirstMission.renderComparisonTable();
   if(window.FirstMission) FirstMission.renderComparison(); },
 test(){ this.recalc(); const o=this.outcome; Sound.glass();
   const verdict= o.nUsed<4? 'Incomplete — assign at least nose, skin, frame and shield before a meaningful test.' :

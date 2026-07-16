@@ -12,10 +12,10 @@ const Vault3D={ three:null, spec:null, structure:null, activeId:null, rot:{x:-.2
     /* Build on the next frame so rapid selections collapse to the latest request. */
     requestAnimationFrame(()=>{if(token!==this.mountToken)return;let next;
       try{next=buildStructure(id);}catch(error){this.fail(id,error,token);return;}
-      if(token!==this.mountToken){this.disposeSpecimen(next&&next.group);return;}
+      if(token!==this.mountToken){disposeStructureGroup(next&&next.group);return;}
       const previous=this.spec;
       this.structure=next;this.spec=next.group;this.spec.scale.multiplyScalar(.72);this.spec.userData.vaultScale=this.spec.scale.x;this.three.sc.add(this.spec);
-      this.activeId=id;this.setState('ready');if(previous){this.three.sc.remove(previous);this.disposeSpecimen(previous);}
+      this.activeId=id;this.setState('ready');if(previous){this.three.sc.remove(previous);disposeStructureGroup(previous);}
       this.resize();this.renderFrame();
     }); },
   ensureStage(cv,wrap){
@@ -66,10 +66,6 @@ const Vault3D={ three:null, spec:null, structure:null, activeId:null, rot:{x:-.2
     if(!rm&&this.dust) this.dust.userData.drift(t,.35);
     this.three.cam.position.set(0,0,5.4); this.three.cam.lookAt(0,0,0);
     this.renderFrame(); },
-  disposeSpecimen(root){if(!root)return;const geometries=new Set(),materials=new Set(),textures=new Set();
-    root.traverse(node=>{if(node.geometry)geometries.add(node.geometry);const mats=Array.isArray(node.material)?node.material:[node.material];
-      mats.filter(Boolean).forEach(material=>{materials.add(material);['map','alphaMap','normalMap','roughnessMap','metalnessMap','emissiveMap'].forEach(key=>{if(material[key])textures.add(material[key]);});});});
-    textures.forEach(texture=>texture.dispose());materials.forEach(material=>material.dispose());geometries.forEach(geometry=>geometry.dispose());},
   setState(kind,message=''){const el=$('#specimen3d-state');if(!el)return;el.className=kind;
     el.innerHTML=kind==='ready'?'':`<span>${message}</span>${kind==='error'?'<button class="ctl sm" data-vault-retry>Retry viewer</button>':''}`;},
   fail(id,error,token=this.mountToken){if(token!==this.mountToken)return;this.failedId=id;this.renderFailed=true;console.error('Collection specimen viewer failed',error);

@@ -9,6 +9,7 @@ const Onboard={ step:0, scanP:0, holding:false, active:false, seq:0, t0:0,
 
 start(replay){ this.replay=replay; this.active=true; this.seq=0;
   $('#onboard').classList.remove('hidden');
+  $('#app').inert=true;
   this.build(); this.go(0); this.bootMsgs();
   if(!this._wired){ this._wired=true; this.wire(); }
   this.loop(); },
@@ -104,7 +105,8 @@ go(n){ this.step=n; Sound.glass();
   if(n===2){ this.scanP=0; this._scanDone=false;
     if(this.sheet){ this.sheet.visible=true; this.camTarget=10; }
     $('#ob-constellation').style.opacity=0; }
-  if(n===3){ this.coreTarget=1.2; } },
+  if(n===3){ this.coreTarget=1.2; }
+  setTimeout(()=>{const step=$(`.ob-step[data-ob="${n}"]`);const target=step&&step.querySelector('input,button');if(target)target.focus();},80); },
 
 drawConstellation(name,complete){ const cv=$('#ob-constellation'); if(!cv) return;
   cv.style.opacity=.95;
@@ -209,6 +211,7 @@ loop(){ if(!this.active) return;
 
 finish(choice='free'){ this.active=false; clearInterval(this._bm);
   $('#onboard').classList.add('hidden');
+  $('#app').inert=false;
   S.onboardingChoiceSeen=true;
   if(!S.onboarded){ S.onboarded=true;
     if(choice!=='mission'&&!S.discovered.graphene){ discover('graphene','first structural scan'); S.scans++;

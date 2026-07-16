@@ -139,7 +139,7 @@
   <!-- ════ SPECIMEN — material entry ════ -->
   <section class="screen" id="scr-codex" aria-label="Material entry">
     <div id="codex-hero">
-      <div id="specimen-stage">
+      <div id="specimen-stage" tabindex="0" aria-label="Interactive 3D material structure. Use arrow keys to rotate and plus or minus to zoom.">
         <canvas id="specimen-canvas"></canvas>
         <div id="halo-ring"></div>
         <div id="specimen-title">
@@ -346,8 +346,20 @@
     </div>
     <div id="lab-center">
       <div id="lab-stage">
-        <canvas id="lab-canvas"></canvas>
-        <div id="lab-alert"><i></i><span id="lab-alert-text">Critical defect propagation detected</span></div>
+        <div id="lab-viewer-header">
+          <div id="lab-viewer-controls">
+            <span class="eyebrow">View specimen</span>
+            <div id="lab-viewbar" role="group" aria-label="Specimen viewing mode"></div>
+            <span aria-hidden="true"></span>
+          </div>
+          <div id="lab-status-row">
+            <div id="lab-status-text" aria-live="polite">Tensile test ready</div>
+            <div id="lab-alert" role="alert" aria-live="assertive"><i></i><span id="lab-alert-text">Critical defect propagation detected</span></div>
+          </div>
+        </div>
+        <div id="lab-visual">
+          <canvas id="lab-canvas" aria-label="Tensile specimen visualisation"></canvas>
+        </div>
       </div>
       <div id="lab-charts">
         <div class="lab-chart panel"><span class="cap">Stress – Strain Curve</span><canvas id="chart-ss"></canvas></div>

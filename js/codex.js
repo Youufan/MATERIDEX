@@ -264,6 +264,10 @@ bind(){
       this.rot.x=clamp(this.drag.rx+(e.clientY-this.drag.y)*.006,-1.5,1.5); } });
   st.addEventListener('pointerup',()=>this.drag=null);
   st.addEventListener('wheel',e=>{ e.preventDefault(); this.zoom=clamp(this.zoom+e.deltaY*.011,4.2,19); },{passive:false});
+  st.addEventListener('keydown',e=>{const move={ArrowLeft:[0,-.12],ArrowRight:[0,.12],ArrowUp:[-.12,0],ArrowDown:[.12,0]}[e.key];
+    if(move){e.preventDefault();this.rot.x=clamp(this.rot.x+move[0],-1.5,1.5);this.rot.y+=move[1];}
+    if(e.key==='+'||e.key==='='){e.preventDefault();this.zoom=clamp(this.zoom-.7,4.2,19);}
+    if(e.key==='-'){e.preventDefault();this.zoom=clamp(this.zoom+.7,4.2,19);}});
   $$('.vm-btn').forEach(b=>b.addEventListener('click',()=>{ $$('.vm-btn').forEach(x=>x.classList.remove('on'));
     b.classList.add('on'); Sound.click(); if(this.structure) this.structure.setBonds(b.dataset.vm!=='lattice');
     if(this.bgNeb) this.bgNeb.material.opacity = b.dataset.vm==='bonds'? .05 : .2;
@@ -306,7 +310,7 @@ scan(){ if(this._scanning) return; const id=this.id,m=MATERIALS[id]; this._scann
 show(id){ this.id=id; const m=MATERIALS[id];
   S.recentViewed=[id,...S.recentViewed.filter(x=>x!==id)].slice(0,6); save();
   if(window.Quests&&Quests.event) Quests.event('view-material',{id});
-  if(this.st){ if(this.spec){ this.st.scene.remove(this.spec); this.spec=null; }
+  if(this.st){ if(this.spec){ this.st.scene.remove(this.spec); disposeStructureGroup(this.spec); this.spec=null;this.structure=null;this.specAnim=null; }
     const bs=buildStructure(id);this.structure=bs;this.spec=bs.group;this.specAnim=bs.anim||null;this.st.scene.add(this.spec);this.zoom=7.4;
     const cellBtn=$('[data-stg="unit cell"]');if(cellBtn){cellBtn.style.display=bs.cell?'':'none';cellBtn.classList.toggle('on',!!bs.cell);bs.setCell(!!bs.cell);}
     const bondBtn=$('[data-stg="bonds"]'),hasBonds=!!(bs.bonds&&bs.bonds.children.length);if(bondBtn){bondBtn.style.display=hasBonds?'':'none';bondBtn.classList.toggle('on',hasBonds);bs.setBonds(hasBonds);}

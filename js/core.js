@@ -159,6 +159,12 @@ $('#rail-crest').addEventListener('click',()=>nav('core'));
 $('#rail-crest').addEventListener('keydown',e=>{if(e.key==='Enter')nav('core')});
 document.addEventListener('click',e=>{ const g=e.target.closest('[data-nav-go]'); if(g) nav(g.dataset.navGo); });
 document.addEventListener('keydown',e=>{
+  const modal=$('#modal-root');
+  if(modal&&modal.classList.contains('open')){
+    if(e.key==='Escape'){e.preventDefault();closeModal();return;}
+    if(e.key==='Tab'){const focusable=$$('#modal-box button:not([disabled]),#modal-box [href],#modal-box input:not([disabled]),#modal-box select:not([disabled]),#modal-box textarea:not([disabled]),#modal-box [tabindex]:not([tabindex="-1"])').filter(el=>el.offsetParent!==null);
+      if(focusable.length){const first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}return;}
+  }
   if(e.target.matches('input,select,textarea')) return;
   const keys={'1':'core','2':'atlas','3':'index','4':'lab','5':'expedition','6':'collection','7':'challenges','8':'loadout','9':'codex'};
   if(keys[e.key]) nav(keys[e.key]);
@@ -166,10 +172,13 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ---------- modal ---------- */
-function openModal(html){ $('#modal-box').innerHTML='<button class="modal-x" aria-label="Close">✕</button>'+html;
+let modalReturnFocus=null;
+function openModal(html){ modalReturnFocus=document.activeElement;const box=$('#modal-box');box.innerHTML='<button class="modal-x" aria-label="Close">✕</button>'+html;
+  box.setAttribute('role','dialog');box.setAttribute('aria-modal','true');box.setAttribute('aria-label',box.querySelector('.panel-title')?.textContent||'Dialog');
   $('#modal-root').classList.add('open'); Sound.glass();
-  $('#modal-box .modal-x').addEventListener('click',closeModal); }
-function closeModal(){ $('#modal-root').classList.remove('open'); }
+  box.querySelector('.modal-x').addEventListener('click',closeModal);requestAnimationFrame(()=>{const target=box.querySelector('[autofocus],button:not([disabled]),[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled])');if(target)target.focus();}); }
+function closeModal(){ const root=$('#modal-root');if(!root.classList.contains('open'))return;root.classList.remove('open');
+  const target=modalReturnFocus;modalReturnFocus=null;if(target&&target.isConnected)target.focus(); }
 $('#modal-veil').addEventListener('click',closeModal);
 
 /* ---------- profile modal ---------- */

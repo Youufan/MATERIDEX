@@ -16,6 +16,13 @@ const FIRST_MISSION_EVIDENCE={
   mxene:{name:'Ti₃C₂Tₓ MXene',structure:'Terminated Ti–C–Ti–C–Ti sheet',transport:'The carbide backbone is metallically conductive; Tₓ controls surface chemistry.',fit:'Water-processable flakes can form flexible printed films.',limit:'Humidity and oxidation threaten long-term performance; etching chemistry requires care.'},
   pedot:{name:'PEDOT:PSS',structure:'Conjugated polymer chains and conductive domains',transport:'Doping and chain organisation create a formulation-dependent conductive network.',fit:'Light, flexible, transparent and directly coatable from aqueous dispersions.',limit:'Conductivity is below the 2D sheets and humidity sensitivity usually requires encapsulation.'}
 };
+const FIRST_MISSION_COMPARE_ROWS=[
+  ['Electrical conductivity','10⁶–10⁸ S/m','10⁴–10⁶ S/m','10–10⁵ S/m'],
+  ['Young’s modulus','0.8–1.1 TPa','≈330 GPa, method-dependent','1–3 GPa, formulation-dependent'],
+  ['Representation','Ideal single-layer lattice','Representative terminated sheet','Representative polymer-chain model'],
+  ['Practical film route','Transfer or assembled ink','Aqueous flake ink','Aqueous polymer dispersion'],
+  ['Key limitation','Transfer defects and scale-up','Oxidation and humidity','Humidity and formulation dependence']
+];
 
 const FirstMission={
   state(){
@@ -47,20 +54,21 @@ const FirstMission={
   syncFocus(){
     const active=this.active(),step=this.state().step;document.body.classList.toggle('mission-focus',active);
     const allowed=new Set(['core','codex']);if(step>=3)allowed.add('lab');if(step>=4)allowed.add('loadout');if(step>=6)allowed.add('collection');
-    $$('.rail-btn[data-nav]').forEach(button=>{const locked=active&&!allowed.has(button.dataset.nav);button.classList.toggle('mission-locked',locked);if(locked){button.setAttribute('aria-disabled','true');button.dataset.missionTitle='1';button.title='Available in Free Exploration';}else{button.removeAttribute('aria-disabled');if(button.dataset.missionTitle){button.removeAttribute('title');delete button.dataset.missionTitle;}}});
+    $$('.rail-btn[data-nav]').forEach(button=>{const locked=active&&!allowed.has(button.dataset.nav);button.classList.toggle('mission-locked',locked);if(locked){button.setAttribute('aria-disabled','true');if(!button.dataset.missionTabindex)button.dataset.missionTabindex=button.getAttribute('tabindex')??'';button.tabIndex=-1;button.dataset.missionTitle='1';button.title='Available in Free Exploration';}else{button.removeAttribute('aria-disabled');if(button.dataset.missionTabindex!==undefined){const prior=button.dataset.missionTabindex;prior===''?button.removeAttribute('tabindex'):button.setAttribute('tabindex',prior);delete button.dataset.missionTabindex;}if(button.dataset.missionTitle){button.removeAttribute('title');delete button.dataset.missionTitle;}}});
     const run=$('#sim-run');if(run)run.classList.toggle('mission-next',active&&this.state().step===3);
     const specimen=$('#lab-material');if(specimen)specimen.disabled=active&&step===3;
+    if(typeof Lab!=='undefined'&&Lab.setGuided)Lab.setGuided(active&&step===3,active&&step===3?'pedot':null,'first-mission');
   },
   restore(){
     const st=this.state();if(!this.active())return;
     if(st.step<3){Codex.show(FIRST_MISSION_IDS[st.step]);nav('codex');}
-    else if(st.step===3){Lab.setMaterial('pedot');nav('lab');}
-    else{S.compareSel=[...FIRST_MISSION_IDS];Loadout.renderTray();Loadout.renderCompare();nav('loadout');}
+    else if(st.step===3){Lab.setMaterial('pedot',{guided:true});nav('lab');}
+    else{S.compareSel=[...FIRST_MISSION_IDS];Loadout.renderTray();Loadout.renderCompare();nav('loadout');if(st.step===6)setTimeout(()=>this.showEvidence(),0);}
   },
   goCurrent(){
     const st=this.state();if(!this.active())return;
     if(st.step<3){Codex.show(FIRST_MISSION_IDS[st.step]);nav('codex');this.render();return;}
-    if(st.step===3){Lab.setMaterial('pedot');nav('lab');this.syncFocus();this.render();return;}
+    if(st.step===3){Lab.setMaterial('pedot',{guided:true});nav('lab');this.syncFocus();this.render();return;}
     S.compareSel=[...FIRST_MISSION_IDS];this.commit();Loadout.renderTray();Loadout.renderCompare();nav('loadout');this.renderComparison();this.render();
   },
   event(type,data={}){
@@ -91,7 +99,7 @@ const FirstMission={
     if(st.status==='complete'){
       if(st.dismissed){el.style.display='none';return;}el.style.display='block';el.innerHTML=`<div class="fm-card complete"><div class="fm-head"><span>First Mission complete</span><b>9 / 9 actions</b></div><div class="fm-progress">${'<i class="done"></i>'.repeat(9)}</div><p>PEDOT:PSS is recorded in the Collection with the evidence behind your decision.</p><button class="ctl sm" data-fm-dismiss>Dismiss</button></div>`;return;
     }
-    if(!this.active()){el.style.display='none';return;}el.style.display='block';const step=FIRST_MISSION_STEPS[st.step],done=Math.min(8,2+st.step),current=Math.min(9,3+st.step);
+    if(!this.active()){el.style.display='none';return;}el.style.display='block';const step=FIRST_MISSION_STEPS[st.step],done=Math.min(8,1+st.step),current=Math.min(9,2+st.step);
     const action=st.step<3?(CURRENT==='codex'&&Codex.id===FIRST_MISSION_IDS[st.step]?'Record structure insight':'Open candidate'):
       st.step===3?(CURRENT==='lab'&&Lab.mat==='pedot'?'Run highlighted test':'Open Laboratory'):
       st.step===4?(CURRENT==='loadout'&&st.compareReady?'Comparison reviewed':'Open comparison'):
@@ -109,6 +117,11 @@ const FirstMission={
     panel.innerHTML=`<div class="subplate-title">First Mission evidence</div><h3>Wearable design brief</h3><p class="fm-brief">Choose a lightweight transparent conductor that tolerates bending, provides sufficient conductivity and can be deposited from solution at practical scale.</p>
       <div class="fm-evidence">${FIRST_MISSION_IDS.map(id=>{const e=FIRST_MISSION_EVIDENCE[id];return `<article style="--candidate:${MATERIALS[id].color}"><h4>${e.name}</h4><p><b>Visible structure</b>${e.structure}</p><p><b>Structure → property</b>${e.transport}</p><p><b>Wearable fit</b>${e.fit}</p><p><b>Limitation</b>${e.limit}</p>${deciding?`<button class="ctl sm" data-fm-decision="${id}">Select ${e.name}</button>`:''}</article>`;}).join('')}</div>
       <p class="tiny dim">Qualitative educational decision matrix. Property ranges and primary references remain available in each Codex entry; processing, thickness, substrate and encapsulation change real device performance. Structure references: Novoselov et al. (2004) and Lee et al. (2008) for graphene; Naguib et al. (2011) for Ti₃C₂Tₓ; Groenendaal et al. (2000) for PEDOT.</p>`;
+  },
+  renderComparisonTable(){
+    if(!this.active()||this.state().step<4)return;const tb=$('#cmp-table');if(!tb)return;
+    tb.innerHTML=`<tr><th>Mission criterion</th>${FIRST_MISSION_IDS.map(id=>`<th style="color:${MATERIALS[id].color}">${MATERIALS[id].name}</th>`).join('')}</tr>`+
+      FIRST_MISSION_COMPARE_ROWS.map(row=>`<tr><td>${row[0]}</td>${row.slice(1).map(value=>`<td>${value}</td>`).join('')}</tr>`).join('');
   },
   decide(id){
     const st=this.state();if(!this.active()||st.step!==5||!FIRST_MISSION_IDS.includes(id))return;
