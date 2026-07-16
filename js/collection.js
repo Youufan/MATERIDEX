@@ -1,11 +1,29 @@
 /* ════════════════ COLLECTION VAULT ════════════════ */
 let collSort='recent', collSel=null;
-const Vault3D={ three:null, spec:null, rot:{x:-.2,y:.3}, drag:null,
-  mount(id){ const wrap=$('#specimen3d-wrap'); if(!wrap) return;
-    const cv=$('#specimen3d');
-    if(!HAS3D){ const ctx=cv.getContext('2d'); cv.width=wrap.clientWidth; cv.height=wrap.clientHeight;
-      drawPodGlyph(ctx,MATERIALS[id],cv.width,cv.height,1); return; }
-    if(!this.three){ const st=GFX.stage(cv,{bloom:.18,fov:40});
+const Vault3D={ three:null, spec:null, structure:null, activeId:null, rot:{x:-.2,y:.3}, drag:null,
+  mountToken:0,loopStarted:false,contextLost:false,renderFailed:false,failedId:null,resizeObserver:null,
+  mount(id){ const wrap=$('#specimen3d-wrap'),cv=$('#specimen3d'); if(!wrap||!cv||!MATERIALS[id]) return;
+    const token=++this.mountToken;this.failedId=null;this.renderFailed=false;
+    if(!this.spec)this.setState('loading',`Loading ${MATERIALS[id].name}…`);
+    if(!HAS3D){ const ctx=cv.getContext('2d'),w=Math.max(1,wrap.clientWidth),h=Math.max(1,wrap.clientHeight);
+      cv.width=w;cv.height=h;drawPodGlyph(ctx,MATERIALS[id],w,h,1);this.activeId=id;this.setState('ready');return; }
+    try{this.ensureStage(cv,wrap);}catch(error){this.fail(id,error);return;}
+    if(this.activeId===id&&this.spec&&!this.contextLost){this.resize();this.setState('ready');return;}
+    /* Build on the next frame so rapid selections collapse to the latest request. */
+    requestAnimationFrame(()=>{if(token!==this.mountToken)return;let next;
+      try{next=buildStructure(id);}catch(error){this.fail(id,error,token);return;}
+      if(token!==this.mountToken){this.disposeSpecimen(next&&next.group);return;}
+      const previous=this.spec;
+      this.structure=next;this.spec=next.group;this.spec.scale.multiplyScalar(.72);this.spec.userData.vaultScale=this.spec.scale.x;this.three.sc.add(this.spec);
+      this.activeId=id;this.setState('ready');if(previous){this.three.sc.remove(previous);this.disposeSpecimen(previous);}
+      this.resize();this.renderFrame();
+    }); },
+  ensureStage(cv,wrap){
+    if(this.three){
+      if(this.three.r.domElement!==cv)throw new Error('Collection canvas identity changed unexpectedly');
+      return;
+    }
+    const st=GFX.stage(cv,{bloom:.18,fov:40});
       const r=st.renderer, sc=st.scene, cam=st.camera;
       sc.add(new THREE.HemisphereLight(0xdfe7f4,0x171526,.58));
       const k=new THREE.DirectionalLight(0xfff8ec,.72); k.position.set(3,5,6); sc.add(k);
@@ -24,21 +42,39 @@ const Vault3D={ three:null, spec:null, rot:{x:-.2,y:.3}, drag:null,
       wrap.addEventListener('pointermove',e=>{ if(this.drag){ this.rot.y=this.drag.ry+(e.clientX-this.drag.x)*.008;
         this.rot.x=clamp(this.drag.rx+(e.clientY-this.drag.y)*.008,-1.4,1.4); } });
       wrap.addEventListener('pointerup',()=>this.drag=null);
-      this.loop(); }
-    if(this.spec) this.three.sc.remove(this.spec);
-    this.structure=buildStructure(id);this.spec=this.structure.group;this.spec.scale.multiplyScalar(.72);this.three.sc.add(this.spec); },
-  loop(){ requestAnimationFrame(()=>this.loop());
-    if(CURRENT!=='collection'||!this.three||!this.spec) return;
-    const wrap=$('#specimen3d-wrap'); if(!wrap) return;
-    const w=wrap.clientWidth,h=wrap.clientHeight; if(!w) return;
-    this.three.st.setSize(w,h);
+      wrap.addEventListener('click',e=>{if(e.target.closest('[data-vault-retry]')&&this.failedId)this.mount(this.failedId);});
+      cv.addEventListener('webglcontextlost',e=>{e.preventDefault();this.contextLost=true;this.setState('paused','3D context paused. Waiting to restore…');});
+      cv.addEventListener('webglcontextrestored',()=>{this.contextLost=false;const id=this.activeId;this.activeId=null;if(id)this.mount(id);});
+      if(typeof ResizeObserver!=='undefined'){this.resizeObserver=new ResizeObserver(()=>this.resize());this.resizeObserver.observe(wrap);}
+      if(!this.loopStarted){this.loopStarted=true;this.loop();}
+      this.resize();
+  },
+  pixelRatio(){return Math.min(window.devicePixelRatio||1,S.settings.fx==='low'?1:2);},
+  resize(){if(!this.three)return;const wrap=$('#specimen3d-wrap');if(!wrap)return;
+    const w=Math.round(wrap.clientWidth),h=Math.round(wrap.clientHeight);if(!w||!h)return;
+    const pr=this.pixelRatio();if(this.three.r.getPixelRatio()!==pr)this.three.r.setPixelRatio(pr);
+    this.three.st.setSize(w,h);this.renderFrame();},
+  renderFrame(){if(!this.three||!this.spec||this.contextLost||this.renderFailed)return;
+    try{this.three.st.render();}catch(error){this.fail(this.activeId,error);}},
+  loop(){ if(!this.loopStarted)return;requestAnimationFrame(()=>this.loop());
+    if(CURRENT!=='collection'||!this.three||!this.spec||this.contextLost||this.renderFailed) return;
+    const wrap=$('#specimen3d-wrap'); if(!wrap||!wrap.clientWidth||!wrap.clientHeight) return;
     const t=now()/1000; const rm=document.documentElement.dataset.motion==='reduced';
     this.spec.rotation.x=lerp(this.spec.rotation.x,this.rot.x,.08);
     this.spec.rotation.y=lerp(this.spec.rotation.y,this.rot.y+(rm?0:t*.25),.08);
-    if(this.spec.userData.breathe) this.spec.scale.setScalar(1+.05*Math.sin(t*1.6));
+    if(this.spec.userData.breathe)this.spec.scale.setScalar((this.spec.userData.vaultScale||.72)*(1+.05*Math.sin(t*1.6)));
     if(!rm&&this.dust) this.dust.userData.drift(t,.35);
     this.three.cam.position.set(0,0,5.4); this.three.cam.lookAt(0,0,0);
-    this.three.st.render(); } };
+    this.renderFrame(); },
+  disposeSpecimen(root){if(!root)return;const geometries=new Set(),materials=new Set(),textures=new Set();
+    root.traverse(node=>{if(node.geometry)geometries.add(node.geometry);const mats=Array.isArray(node.material)?node.material:[node.material];
+      mats.filter(Boolean).forEach(material=>{materials.add(material);['map','alphaMap','normalMap','roughnessMap','metalnessMap','emissiveMap'].forEach(key=>{if(material[key])textures.add(material[key]);});});});
+    textures.forEach(texture=>texture.dispose());materials.forEach(material=>material.dispose());geometries.forEach(geometry=>geometry.dispose());},
+  setState(kind,message=''){const el=$('#specimen3d-state');if(!el)return;el.className=kind;
+    el.innerHTML=kind==='ready'?'':`<span>${message}</span>${kind==='error'?'<button class="ctl sm" data-vault-retry>Retry viewer</button>':''}`;},
+  fail(id,error,token=this.mountToken){if(token!==this.mountToken)return;this.failedId=id;this.renderFailed=true;console.error('Collection specimen viewer failed',error);
+    this.setState('error','The 3D specimen could not be rendered.');}
+};
 
 function drawPodGlyph(ctx,m,w,h,big){ // 2D thumbnail per specimen type
   ctx.clearRect(0,0,w,h); const cx=w/2,cy=h/2-6*big,t=now()/1000;
@@ -150,8 +186,8 @@ function drawPodGlyphOutline(ctx,m){ const cx=100,cy=108,R=40;
     default: ctx.arc(cx,cy,R*.8,0,7); }
   ctx.stroke(); }
 function collDetail(id){ const m=MATERIALS[id]; const el=$('#coll-detail'); const ml=masteryLevel(id);
-  el.innerHTML=`<div class="panel-title">Specimen</div><div class="panel-body">
-    <div id="specimen3d-wrap"><canvas id="specimen3d"></canvas></div>
+  const info=$('#coll-detail-info');if(!el||!info)return;
+  info.innerHTML=`
     <h3 class="display" style="font-size:26px;margin-top:12px">${m.name}</h3>
     <div class="row" style="gap:10px;margin:4px 0 10px"><span class="mono tiny dim">${m.code}</span><span class="rarity ${m.rarity}">${m.rarity}</span></div>
     <p class="tiny" style="font-style:italic;color:var(--lilac);line-height:1.65">${m.lore}</p>
@@ -166,12 +202,8 @@ function collDetail(id){ const m=MATERIALS[id]; const el=$('#coll-detail'); cons
     <div class="ctl-group" style="margin-top:14px">
       <button class="ctl sm primary" id="cd-open">Open entry</button>
       <button class="ctl sm" id="cd-sanctum">Display in Sanctum</button></div>
-    <p class="tiny dim" style="margin-top:8px">Drag the specimen to rotate.</p></div>`;
+    <p class="tiny dim" style="margin-top:8px">Drag the specimen to rotate.</p>`;
   Vault3D.mount(id);
-  const wrap=$('#specimen3d-wrap');
-  if(wrap){ wrap.style.transition='none'; wrap.style.opacity='0'; wrap.style.transform='scale(.94)';
-    requestAnimationFrame(()=>{ wrap.style.transition='opacity .7s var(--ease-out), transform .7s var(--ease-spring)';
-      wrap.style.opacity='1'; wrap.style.transform='scale(1)'; }); }
   $('#cd-open').addEventListener('click',()=>{ Codex.show(id); nav('codex'); });
   $('#cd-sanctum').addEventListener('click',()=>{ S.sanctum=id; save(); Sound.glass();
     toast(`${m.name} now presides over your Sanctum`); logEntry(`${m.name} displayed in the personal Sanctum.`); });

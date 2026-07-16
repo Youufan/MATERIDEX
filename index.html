@@ -450,7 +450,13 @@
     <div id="coll-right">
       <div class="panel lens-r" id="coll-detail">
         <div class="panel-title">Specimen</div>
-        <div class="panel-body"><p class="tiny dim">Select a specimen from the vault.</p></div>
+        <div class="panel-body">
+          <div id="specimen3d-wrap" aria-live="polite">
+            <canvas id="specimen3d" aria-label="Interactive three-dimensional material specimen"></canvas>
+            <div id="specimen3d-state"><span>Select a specimen from the vault.</span></div>
+          </div>
+          <div id="coll-detail-info"><p class="tiny dim" style="margin-top:12px">Select a specimen from the vault.</p></div>
+        </div>
       </div>
     </div>
   </section>
