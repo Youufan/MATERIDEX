@@ -4,6 +4,6 @@
   "version": "1.0.0",
   "scripts": {
     "validate:structures": "node scripts/validate-structures.js",
-    "build": "npm run validate:structures && node scripts/check-render-models.js && node scripts/check-first-mission.js && node scripts/check-mission-science.js && node scripts/check-vault-lifecycle.js && node scripts/check-build.js"
+    "build": "npm run validate:structures && node scripts/check-render-models.js && node scripts/check-first-mission.js && node scripts/check-mission-science.js && node scripts/check-lab-viewer-layout.js && node scripts/check-vault-lifecycle.js && node scripts/check-build.js"
   }
 }

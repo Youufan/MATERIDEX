@@ -243,10 +243,10 @@ halfW(u){ const tab=.14, fil=.12;
   const d=Math.min(u-tab,1-tab-u);
   if(d<fil) return 1-(1-.62)*(0.5-0.5*Math.cos(Math.PI*d/fil));
   return .62; },
-stageMetrics(w){const pad=clamp(w*.22,70,86),gripW=clamp(w*.11,34,46),arrowLen=clamp(w*.06,16,26);return{pad,gripW,arrowLen};},
+stageMetrics(w){const pad=clamp(w*.24,78,110),gripW=clamp(w*.11,34,46),arrowLen=clamp(w*.06,16,26);return{pad,gripW,arrowLen};},
 drawStage(eps,M){ const cv=this.cv,wrap=$('#lab-visual');
   const w=wrap.clientWidth,h=wrap.clientHeight; if(!w) return;
-  if(cv.width!==w*PR){ cv.width=w*PR; cv.height=h*PR; }
+  if(cv.width!==Math.round(w*PR)||cv.height!==Math.round(h*PR)){ cv.width=Math.round(w*PR); cv.height=Math.round(h*PR); }
   const ctx=this.ctx; ctx.setTransform(PR,0,0,PR,0,0); ctx.clearRect(0,0,w,h);
   const m=MATERIALS[this.mat]; const t=now()/1000; const kind=structureKind(this.mat);
   const rm=document.documentElement.dataset.motion==='reduced';
@@ -256,9 +256,10 @@ drawStage(eps,M){ const cv=this.cv,wrap=$('#lab-visual');
   this.renderViewerStatus(eps);
   const {pad,gripW,arrowLen}=this.stageMetrics(w),gW0=w-pad*2,gH0=Math.max(58,Math.min(h-110,gW0*.3));
   const oy=(h-gH0)/2+8;
-  const gW=gW0*(1+eps*.9);                       // visible elongation (display-compressed)
+  const maxGW=Math.max(60,w-2*(gripW+arrowLen+24));
+  const gW=Math.min(gW0*(1+eps*.9),maxGW);        // visible elongation, compressed to preserve annotations
   const nu = M.ductile? .42 : .18;
-  const ox=pad-(gW-gW0)/2;                       // stretch symmetrically
+  const ox=(w-gW)/2;                              // stretch symmetrically without clipping grips or vectors
   const cs=this.crackSite;
   const neckAmp = M.ductile? clamp((prog-.5)*.7,0,.4) : 0;
   const xw=(u)=>{ // deformed half width at u (0..1)
@@ -473,7 +474,7 @@ drawInternals(ctx,kind,o){ const {U,xw,oy,gH0,eps,prog,crackP,t,rm,m}=o;
       ctx.beginPath(); ctx.arc(x,y,7+3*(rm?0:Math.sin(t*4)),0,7); ctx.stroke(); }); } },
 
 drawSS(eps,M){ const cv=this.ss; const w=cv.clientWidth,h=cv.clientHeight; if(!w) return;
-  if(cv.width!==w*PR){cv.width=w*PR;cv.height=h*PR;}
+  if(cv.width!==Math.round(w*PR)||cv.height!==Math.round(h*PR)){cv.width=Math.round(w*PR);cv.height=Math.round(h*PR);}
   const ctx=cv.getContext('2d'); ctx.setTransform(PR,0,0,PR,0,0); ctx.clearRect(0,0,w,h);
   const pad=Math.min(66,Math.max(50,w*.22)), maxE=M.ef*1.2, maxS=M.uts*1.25;
   ctx.strokeStyle='rgba(246,242,234,.12)';
@@ -497,7 +498,7 @@ drawSS(eps,M){ const cv=this.ss; const w=cv.clientWidth,h=cv.clientHeight; if(!w
   ctx.fillStyle='#fff'; ctx.shadowColor='#93dcf4'; ctx.shadowBlur=9;
   ctx.beginPath(); ctx.arc(x,y,3,0,7); ctx.fill(); ctx.shadowBlur=0; },
 drawHeat(eps,M){ const cv=this.heat; const w=cv.clientWidth,h=cv.clientHeight; if(!w) return;
-  if(cv.width!==w*PR){cv.width=w*PR;cv.height=h*PR;}
+  if(cv.width!==Math.round(w*PR)||cv.height!==Math.round(h*PR)){cv.width=Math.round(w*PR);cv.height=Math.round(h*PR);}
   const ctx=cv.getContext('2d'); ctx.setTransform(PR,0,0,PR,0,0); ctx.clearRect(0,0,w,h);
   const prog=clamp(eps/Math.max(M.ef,.0001),0,1);
   const cs=this.crackSite;
