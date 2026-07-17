@@ -97,6 +97,10 @@ function drawPodGlyph(ctx,m,w,h,big){ // 2D thumbnail per specimen type
       ctx.beginPath(); ctx.ellipse(cx,cy+R*.7,R*.4,R*.16,0,0,Math.PI); ctx.stroke(); break;
     case 'weave': for(let i=0;i<4;i++){ ctx.globalAlpha=.6; ctx.beginPath();
       ctx.ellipse(cx,cy,R*(.5+i*.16),R*(.5+i*.16)*.5,i*.7,0,7); ctx.stroke(); } ctx.globalAlpha=1; break;
+    case 'web': for(let i=0;i<7;i++){ const a=i/7*Math.PI*2,ex=cx+Math.cos(a)*R*.72,ey=cy+Math.sin(a)*R*.58;
+      ctx.globalAlpha=.55;ctx.beginPath();ctx.moveTo(cx,cy);ctx.quadraticCurveTo(cx+Math.sin(a*2)*R*.35,cy+Math.cos(a*3)*R*.28,ex,ey);ctx.stroke();
+      ctx.globalAlpha=.82;ctx.beginPath();ctx.arc(ex,ey,2.4,0,7);ctx.fill(); }
+      ctx.globalAlpha=.7;ctx.beginPath();ctx.ellipse(cx,cy,R*.75,R*.6,0,0,7);ctx.stroke();ctx.globalAlpha=1;break;
     case 'layers': for(let i=0;i<4;i++){ ctx.globalAlpha=.75; ctx.strokeRect(cx-R*.75,cy-R*.5+i*R*.3,R*1.5,R*.12); } ctx.globalAlpha=1; break;
     case 'membrane': ctx.globalAlpha=.35; ctx.beginPath(); ctx.arc(cx,cy,R*.85,0,7); ctx.fill(); ctx.globalAlpha=1;
       ctx.beginPath(); ctx.arc(cx,cy,R*.85,0,7); ctx.stroke(); ctx.beginPath(); ctx.arc(cx,cy,R*.45,0,7); ctx.stroke(); break;
@@ -178,7 +182,7 @@ function drawSilhouette(ctx,m){ ctx.save(); ctx.translate(0,0); ctx.globalAlpha=
 function drawPodGlyphOutline(ctx,m){ const cx=100,cy=108,R=40;
   ctx.beginPath();
   switch(m.specimen){ case 'gem': case 'shard': ctx.moveTo(cx,cy-R); ctx.lineTo(cx+R*.7,cy+R*.6); ctx.lineTo(cx-R*.7,cy+R*.6); ctx.closePath(); break;
-    case 'ribbon': case 'coil': for(let i=0;i<=30;i++){ const t=i/30; ctx[i?'lineTo':'moveTo'](cx+Math.sin(t*8)*R*.6,cy-R+t*2*R); } break;
+    case 'ribbon': case 'coil': case 'web': for(let i=0;i<=30;i++){ const t=i/30; ctx[i?'lineTo':'moveTo'](cx+Math.sin(t*8)*R*.6,cy-R+t*2*R); } break;
     default: ctx.arc(cx,cy,R*.8,0,7); }
   ctx.stroke(); }
 function collDetail(id){ const m=MATERIALS[id]; const el=$('#coll-detail'); const ml=masteryLevel(id);

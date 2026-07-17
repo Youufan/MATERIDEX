@@ -1,6 +1,6 @@
 # MATERIDEX structure audit
 
-Generated 2026-07-15. This report covers every material in the current database. “Crystallographic” means the displayed lattice and basis are sourced. “Representative” means the model communicates chemistry or morphology without claiming a unique exact atomic arrangement.
+Generated 2026-07-17. This report covers every material in the current database. “Crystallographic” means the displayed lattice and basis are sourced. “Representative” means the model communicates chemistry or morphology without claiming a unique exact atomic arrangement.
 
 ## Validation summary
 

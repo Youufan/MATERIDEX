@@ -211,6 +211,7 @@ function buildVeil(scene){
 
 /* ---------- codex controller ---------- */
 const Codex={ id:null, st:null, spec:null, structure:null, rot:{x:-.5,y:.12}, zoom:7.4, drag:null, mouse:{x:0,y:0},
+  mountToken:0,contextLost:false,renderFailed:false,failedId:null,
 init(){
   this.stage=$('#specimen-stage'); this.cv=$('#specimen-canvas');
   if(HAS3D){ const st=GFX.stage(this.cv,{bloom:.18,fov:44}); this.st=st;
@@ -228,7 +229,7 @@ init(){
   if(requested&&STRUCTURE_DATA[requested])setTimeout(()=>nav('codex'),0);
 },
 loop(){ requestAnimationFrame(()=>this.loop());
-  if(CURRENT!=='codex'||!this.st) return;
+  if(CURRENT!=='codex'||!this.st||this.contextLost||this.renderFailed) return;
   const t=now()/1000; const st=this.st;
   st.setSize(this.stage.clientWidth,this.stage.clientHeight);
   const rm=document.documentElement.dataset.motion==='reduced';
@@ -243,7 +244,7 @@ loop(){ requestAnimationFrame(()=>this.loop());
   st.camera.position.y=lerp(st.camera.position.y,-this.mouse.y*.35,.05);
   st.camera.position.z=lerp(st.camera.position.z,this.zoom,.09);
   st.camera.lookAt(0,0,0);
-  st.render();
+  try{st.render();}catch(error){this.fail(this.id,error);return;}
   this.hotspots();
 },
 hotspots(){ const tip=$('#hotspot-tip');
@@ -255,6 +256,9 @@ hotspots(){ const tip=$('#hotspot-tip');
 },
 bind(){
   const st=this.stage;
+  st.addEventListener('click',e=>{if(e.target.closest('[data-codex-retry]')&&this.failedId)this.show(this.failedId);});
+  this.cv.addEventListener('webglcontextlost',e=>{e.preventDefault();this.contextLost=true;this.setState('paused','3D context paused. Waiting to restore…');});
+  this.cv.addEventListener('webglcontextrestored',()=>{this.contextLost=false;const id=this.id;if(id){this.id=null;this.show(id);}});
   st.addEventListener('pointerdown',e=>{ this.drag={x:e.clientX,y:e.clientY,rx:this.rot.x,ry:this.rot.y}; st.setPointerCapture(e.pointerId); });
   st.addEventListener('pointermove',e=>{ const rect=st.getBoundingClientRect();
     this.px=e.clientX-rect.left; this.py=e.clientY-rect.top;
@@ -307,14 +311,22 @@ scan(){ if(this._scanning) return; const id=this.id,m=MATERIALS[id]; this._scann
       checkAchievements(); this.refreshPanels(); Constellation.pulse(id); },260); }
     arc.style.strokeDashoffset=276.5*(1-p/100); pct.textContent=Math.floor(p)+'%';
     if(Math.floor(p)%9===0) Sound.scan(p/100); },40); },
-show(id){ this.id=id; const m=MATERIALS[id];
+setState(kind,message=''){const el=$('#codex-viewer-state');if(!el)return;el.className=kind;
+  el.innerHTML=kind==='ready'?'':`<span>${message}</span>${kind==='error'?'<button class="ctl sm" data-codex-retry>Retry structure</button>':''}`;},
+fail(id,error,token=this.mountToken){if(token!==this.mountToken)return;this.failedId=id;this.renderFailed=true;console.error('Material structure viewer failed',error);
+  this.setState('error','The structure could not be rendered. The previous model has been preserved.');},
+show(id){ const token=++this.mountToken,m=MATERIALS[id];if(!m)return;
+  this.failedId=null;this.renderFailed=false;this.setState('loading',`Loading ${m.name} structure…`);
   S.recentViewed=[id,...S.recentViewed.filter(x=>x!==id)].slice(0,6); save();
   if(window.Quests&&Quests.event) Quests.event('view-material',{id});
-  if(this.st){ if(this.spec){ this.st.scene.remove(this.spec); disposeStructureGroup(this.spec); this.spec=null;this.structure=null;this.specAnim=null; }
-    const bs=buildStructure(id);this.structure=bs;this.spec=bs.group;this.specAnim=bs.anim||null;this.st.scene.add(this.spec);this.zoom=7.4;
+  if(this.st){ let bs;try{bs=buildStructure(id);}catch(error){this.fail(id,error,token);return;}
+    if(token!==this.mountToken){disposeStructureGroup(bs&&bs.group);return;}
+    const previous=this.spec;this.id=id;this.structure=bs;this.spec=bs.group;this.specAnim=bs.anim||null;this.st.scene.add(this.spec);this.zoom=7.4;
+    if(previous){this.st.scene.remove(previous);disposeStructureGroup(previous);}
     const cellBtn=$('[data-stg="unit cell"]');if(cellBtn){cellBtn.style.display=bs.cell?'':'none';cellBtn.classList.toggle('on',!!bs.cell);bs.setCell(!!bs.cell);}
     const bondBtn=$('[data-stg="bonds"]'),hasBonds=!!(bs.bonds&&bs.bonds.children.length);if(bondBtn){bondBtn.style.display=hasBonds?'':'none';bondBtn.classList.toggle('on',hasBonds);bs.setBonds(hasBonds);}
-  }
+    this.setState('ready');
+  } else this.id=id;
   $('#view-modes').style.display='none';const stgEl=$('#struct-toggles');if(stgEl)stgEl.style.display='flex';
   const sd=STRUCTURE_DATA[id];$('#structure-badge').textContent=`${sd.structureType} · ${sd.exact?'crystallographic':'representative model'}`;
   $('#structure-legend').innerHTML=(this.structure?this.structure.legend:[]).map(e=>`<span class="structure-key" title="${e.role}"><i style="background:${e.color}"></i><b>${e.symbol}</b>${e.name}</span>`).join('')||'<span class="structure-key">Structure data unavailable</span>';

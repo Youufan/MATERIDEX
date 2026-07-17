@@ -109,7 +109,7 @@ syncSlots(){ const CAT={cfrp:'weave',kevlar:'weave',cnt:'weave',cellulose:'weave
       else{ poly.style.fill=''; poly.style.stroke=''; } } });
   const sk=document.getElementById('af-skeleton');
   if(sk) sk.setAttribute('stroke', S.loadoutSlots.frame? MATERIALS[S.loadoutSlots.frame].color+'99' : 'rgba(120,110,180,.28)'); },
-assign(slot,id){ S.loadoutSlots[slot]=id; delete S.mitigations[this.riskKey('cfrp','ti64')]; // re-eval risk on change
+assign(slot,id){ S.loadoutSlots[slot]=id; S.mitigations={}; // any assignment changes the interfaces previously reviewed
   save(); Sound.snap(); this.syncSlots(); this.recalc();
   if(window.Quests&&Quests.event) Quests.event('loadout-assign',{id});
   const poly=$(`.lo-slot-poly[data-slot="${slot}"]`);

@@ -8,10 +8,11 @@
 function structureKind(id){ const f=MATERIALS[id].family;
   if(id==='graphene'||id==='mxene') return 'hex';
   if(['cnt','cfrp','kevlar','cellulose'].includes(id)) return 'fibre';
-  if(f==='metal'||id==='nitinol'||id==='liquidmetal') return 'metal';
+  if(id==='liquidmetal') return 'liquid';
+  if(f==='metal'||id==='nitinol') return 'metal';
   if(f==='ceramic'||f==='semi'||f==='energy'||id==='diamond') return 'ceramic';
   return 'polymer'; }
-const KIND_DEFECT={hex:'vacancy defect',fibre:'fibre-break cluster',metal:'grain-boundary void',
+const KIND_DEFECT={hex:'vacancy defect',fibre:'fibre-break cluster',metal:'grain-boundary void',liquid:'channel discontinuity',
   ceramic:'critical flaw',polymer:'craze nucleus'};
 
 const Lab={ mat:'graphene', running:false, t:0, T:25, dt:.016, history:[], eventFired:false, done:false, view:'combined',
@@ -45,9 +46,10 @@ updateMaterialUI(){ const m=MATERIALS[this.mat]; const kind=structureKind(this.m
   const kindNote={hex:'2D lattice — watch individual bonds carry the load.',
     fibre:'fibre-reinforced — strength follows orientation; expect fibre breaks and debonding.',
     metal:'crystalline grains — expect yield, slip and necking before rupture.',
+    liquid:'encapsulated liquid conductor — watch the channel narrow while electrical continuity is retained.',
     ceramic:'brittle crystalline solid — a single flaw decides everything.',
     polymer:'entangled chains — they align, then craze, then part.'}[kind];
-  $('#lab-mat-note').textContent=`${m.name} — ${kindNote} Service ceiling ≈ ${this.serviceCeilK()} K; beyond it the model shows accelerated degradation. Educational model, not an engineering prediction.`;
+  $('#lab-mat-note').textContent=`${m.name} — ${kindNote} Service ceiling ≈ ${this.serviceCeilK()} K; beyond it the model shows accelerated degradation. ${m.sim.scope}`;
   $('#lab-insight').textContent='Configure the specimen and run the tensile protocol. Each control reshapes the response — temperature softens, defects seed damage, orientation steers it.';
   this.renderOutcomes(); },
 
@@ -190,6 +192,7 @@ fail(){ Sound.fail(); const completedId=this.mat,M=this.model();
   $('#lab-insight').textContent=`Failure at ${(M.ef*100).toFixed(1)}% strain, ${this.fmtStress(M.uts)}. `+
     {hex:'The crack unzipped the lattice bond by bond.',fibre:'Fibre breaks coalesced; the matrix could no longer shuttle load around them.',
      metal:'Necking localised the strain until voids linked into a ductile tear.',
+     liquid:'The encapsulating channel reached a discontinuity; this is a continuity surrogate, not free-standing liquid fracture.',
      ceramic:'Brittle rupture — the flaw ran the instant coalescence completed.',
      polymer:'Crazes coalesced; the aligned chains pulled free.'}[kind]+
     (M.over?' Operating beyond the service ceiling degraded the material before the test even loaded it.':'')+
@@ -219,7 +222,7 @@ renderOutcomes(){ const M=this.model(); const m=MATERIALS[this.mat];
     <div class="outcome"><span>Stiffness</span><b>${M.E>=1?M.E.toFixed(0)+' GPa':(M.E*1000).toFixed(1)+' MPa'}</b></div>
     <div class="outcome"><span>Conductivity change</span><b>${m.sim.conduct? (-(this.params.defect*3+((this.epsAt(this.t)/Math.max(M.ef,.001))*9)).toFixed(1))+' %':'n/a'}</b></div>
     <div class="outcome"><span>Confidence</span><b>${M.conf.toFixed(1)} %</b></div>
-    <p class="tiny dim" style="margin-top:8px">Simulation outputs — simplified educational model.</p>`; },
+    <p class="tiny dim" style="margin-top:8px">${m.sim.scope}</p>`; },
 syncClock(){ $('#sim-clock').textContent=this.t.toFixed(3).padStart(6,'0')+' s';
   $('#sim-endclock').textContent='/ '+this.T.toFixed(0)+'.000 s';
   $('#sim-scrub').value=this.t/this.T*1000; },
@@ -414,6 +417,21 @@ drawInternals(ctx,kind,o){ const {U,xw,oy,gH0,eps,prog,crackP,t,rm,m}=o;
       [0.33,0.66].forEach(fy=>{ const y=oy+fy*gH0;
         ctx.beginPath(); ctx.moveTo(U(.2),y); ctx.lineTo(U(.8),y); ctx.stroke(); }); }
     ctx.lineWidth=1; }
+  else if(kind==='liquid'){ /* encapsulated EGaIn channel: composition markers, oxide boundary, no fictional grains */
+    const left=U(0),right=U(1),height=gH0*.72,top=yC-height/2;
+    ctx.fillStyle=`rgba(188,196,214,${.14*dim})`;ctx.strokeStyle=`rgba(224,229,238,${.55*dim})`;ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.roundRect(left,top,right-left,height,height*.34);ctx.fill();ctx.stroke();
+    ctx.setLineDash([3,3]);ctx.strokeStyle=`rgba(147,220,244,${.48*dim})`;ctx.stroke();ctx.setLineDash([]);
+    const count=Math.max(28,Math.floor((right-left)/13));
+    for(let i=0;i<count;i++){const u=(i+.5)/count,x=left+u*(right-left),row=i%3;
+      const y=top+height*(.25+row*.25)+(rm?0:Math.sin(t*1.4+i)*1.2);
+      const indium=i%8===0;ctx.fillStyle=indium?`rgba(171,139,218,${.82*dim})`:`rgba(196,204,218,${.76*dim})`;
+      ctx.beginPath();ctx.arc(x,y,indium?3.1:2.5,0,7);ctx.fill();}
+    if(prog>.55){const gap=clamp((prog-.55)*36,0,18),cx2=U(this.crackSite.x);
+      ctx.fillStyle=`rgba(8,8,18,${clamp((prog-.55)*1.8,0,.9)})`;ctx.fillRect(cx2-gap/2,top-2,gap,height+4);
+      ctx.strokeStyle=`rgba(255,120,80,${clamp((prog-.55)*1.8,0,.85)})`;ctx.beginPath();ctx.moveTo(cx2-gap/2,top);ctx.lineTo(cx2-gap/2,top+height);ctx.moveTo(cx2+gap/2,top);ctx.lineTo(cx2+gap/2,top+height);ctx.stroke();}
+    ctx.fillStyle=`rgba(205,188,247,${.7*dim})`;ctx.font='8px "IBM Plex Mono"';ctx.textAlign='left';ctx.fillText('Ga  ·  In  ·  oxide-skinned channel',left+8,top+12);
+  }
   else if(kind==='metal'){ /* grains + slip + boundaries */
     this.grains.forEach(g=>{ ctx.beginPath();
       g.pts.forEach(([gx,gy],i)=>{ const x=U(gx), y=oy+gy*gH0;

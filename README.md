@@ -30,11 +30,11 @@ The experience is designed for open exploration. Users can move freely between t
 
 4. **World Atlas** organises the material database into six interactive regions with distinct environments, hazards and material families.
 
-5. **Laboratory** supports interactive tensile experiments with material selection, temperature, defect density, layer count, grain size and strain rate controls. Results can be saved for later review.
+5. **Laboratory** supports interactive tensile experiments with material selection, temperature, defect density, layer count, grain orientation and strain rate controls. Every result is labelled as an educational model and can be saved for later review.
 
 6. **Compare and Loadout** combines radar and tabular property comparisons with an airframe material assignment exercise, compatibility checks and predicted outcomes.
 
-7. **Challenges** contains ten scored design scenarios covering tradeoffs in sensing, marine structures, energy storage, thermal protection, actuation, packaging and related applications.
+7. **Challenges** contains ten design scenarios covering tradeoffs in sensing, marine structures, energy storage, thermal protection, actuation, packaging and related applications. Later scenarios become available through progression.
 
 8. **Expeditions** provide optional guided investigations. The current Perovskite Stability Problem explores moisture, heat and light degradation in methylammonium lead iodide and cites its scientific sources inside the experience.
 
@@ -58,7 +58,7 @@ The experience is designed for open exploration. Users can move freely between t
 
 ## Technology
 
-MATERIDEX is a static browser application built with semantic HTML, custom CSS and plain JavaScript. Three.js provides WebGL rendering for structures, specimens, the atlas and cinematic scenes. Canvas provides constellation graphics, charts and scientific schematics. The Web Audio API generates interface sound, while browser local storage preserves progress and settings.
+MATERIDEX is a static browser application built with semantic HTML, custom CSS and plain JavaScript. Three.js provides WebGL rendering for structures, specimens, the atlas and cinematic scenes. Canvas provides constellation graphics, charts and scientific schematics. The Web Audio API generates interface sound, while browser local storage preserves progress and settings. Material structures and Collection specimens are generated from repository data and code rather than downloaded model assets.
 
 The repository vendors the Three.js runtime and post processing modules required by the application. Node.js is used only for repository validation and the production integrity check. No package installation or build bundler is required to run the site.
 
@@ -71,13 +71,33 @@ git clone https://github.com/Youufan/MATERIDEX.git
 cd MATERIDEX
 ```
 
-Open `index.html` in a modern browser. The application runs directly from the repository files.
+Start a local static server from the repository root, then open [http://localhost:4173](http://localhost:4173).
 
-To validate the scientific structure records and confirm that all scripts and referenced assets are present, run:
+```text
+python3 -m http.server 4173
+```
+
+Opening `index.html` directly also works in current browsers, but a local server gives behaviour closer to GitHub Pages and makes missing asset requests easier to diagnose.
+
+Run the complete production audit and build check with:
 
 ```text
 npm run build
 ```
+
+Run the automated checks without the generated audit step with:
+
+```text
+npm test
+```
+
+No package installation or bundling step is required. Node.js is used only to run repository checks.
+
+## Building and deployment
+
+`npm run build` is the production gate. It validates all material and structure records, constructs every render model, exercises the first mission, checks both shared viewer lifecycles, renders the Laboratory state matrix and verifies referenced local assets.
+
+The site is deployed as static files. For the existing GitHub Pages setup, keep Pages configured to serve the repository root from `main`, run the build locally, then push the reviewed files to `main`. No generated distribution folder is required.
 
 ## Repository structure
 
@@ -90,6 +110,8 @@ MATERIDEX/
 │   ├── structure-data.js     Shared scientific structure records
 │   ├── structures.js         Structure rendering and validation logic
 │   ├── codex.js              Material entry and structure interactions
+│   ├── first-mission.js       Guided first engineering decision
+│   ├── gfx.js                 Shared Three.js stage and material helpers
 │   ├── constellation.js      Material Index exploration
 │   ├── atlas.js              World Atlas rendering and interaction
 │   ├── lab.js                Laboratory simulation
@@ -102,13 +124,42 @@ MATERIDEX/
 │   └── core.js               Shared state, navigation and utilities
 ├── vendor/                    Vendored Three.js and post processing modules
 ├── scripts/                   Structure validation and production checks
+├── MATERIAL_AUDIT.md          Complete material inventory and open TODO items
 ├── STRUCTURE_AUDIT.md         Material structure audit and limitations
 └── package.json               Validation commands
 ```
 
 ## Project status
 
-MATERIDEX is an active browser based project with its complete interactive experience available from the main branch and GitHub Pages. The current production check validates all 26 material structure records, parses the application scripts and confirms that referenced local assets are present. Known scientific representation limits and modelling assumptions are documented in `STRUCTURE_AUDIT.md` and within individual material entries.
+MATERIDEX is an active browser based project with its complete interactive experience available from the main branch and GitHub Pages. The current production gate audits all 26 material entries and structures, constructs every shared render model, checks all 12 main screens, exercises mission persistence and validates responsive viewer states. Known scientific representation limits and modelling assumptions are documented in `MATERIAL_AUDIT.md`, `STRUCTURE_AUDIT.md` and the individual material entries.
+
+## Known limitations
+
+1. Alloy, glass, polymer, liquid, hydrogel, composite and biological visuals are declared representative models because those materials do not have one unique atomic structure.
+
+2. The Laboratory is a qualitative educational tensile model. It does not reproduce a complete constitutive law, processing history, defect population or certified design allowable.
+
+3. The EGaIn Laboratory protocol remains a clearly labelled continuity surrogate. A future scientifically specific model should represent an encapsulated liquid channel rather than free standing tensile fracture.
+
+4. The current SiC viewer shows 3C SiC while the explicitly labelled power electronics bandgap belongs to 4H SiC. The YSZ entry likewise separates its displayed high yttria cubic defect model from 3Y TZP mechanical values.
+
+5. Progress is stored in the current browser. Export and import are available, but there is no remote account synchronisation.
+
+## Test procedure
+
+1. Run `npm run build` and confirm that the material audit, structure audit, render construction, mission, Laboratory, Collection, Codex and static production checks pass.
+
+2. Serve the repository locally and visit every main destination through the navigation rail.
+
+3. Check the browser console for errors or WebGL warnings.
+
+4. Review the layouts at 1920 by 1080, 1440 by 900, 1280 by 720, 1024 by 768, 768 by 1024 and 390 by 844.
+
+5. Switch structures and Collection specimens repeatedly, resize the viewer and navigate away and back to confirm that one canvas and one animation loop remain active.
+
+## Reliability work completed
+
+This audit introduced complete material and structure inventories, explicit phase and composition distinctions for MAPbI₃, SiC and YSZ, simulation scope disclosures, a recognisable PEDOT:PSS specimen glyph and a noncrystalline EGaIn Laboratory visual. The Codex and Collection viewers now preserve one renderer and canvas, reject stale replacement requests, dispose only replaced models, recover from WebGL context loss and show loading or retry states. Responsive navigation now keeps every existing destination reachable on tablet and phone widths. The build also checks routes, major controls, local assets, mission persistence and shared viewer ownership.
 
 ## Educational scope
 

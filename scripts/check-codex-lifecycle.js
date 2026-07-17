@@ -1,0 +1,15 @@
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'index.html'),'utf8'),source=fs.readFileSync(path.join(root,'js/codex.js'),'utf8');
+assert.equal((html.match(/id="specimen-canvas"/g)||[]).length,1,'Codex must own one persistent canvas');
+assert.equal((html.match(/id="codex-viewer-state"/g)||[]).length,1,'Codex must expose one loading/error state');
+assert.match(source,/mountToken/,'structure requests must carry a stale-render token');
+assert.match(source,/token!==this\.mountToken/,'stale structure builds must be rejected');
+assert.match(source,/const previous=this\.spec;[\s\S]{0,260}scene\.add\(this\.spec\)[\s\S]{0,180}scene\.remove\(previous\)/,'new structure must mount before the previous structure is removed');
+assert.match(source,/disposeStructureGroup\(previous\)/,'only the replaced structure group may be disposed');
+assert.match(source,/disposeStructureGroup\(bs&&bs\.group\)/,'stale structures must be disposed');
+assert.match(source,/webglcontextlost/,'context loss handling missing');assert.match(source,/webglcontextrestored/,'context restoration handling missing');
+assert.match(source,/Retry structure/,'viewer retry state missing');
+assert.doesNotMatch(source,/renderer\.dispose\(|scene\.clear\(/,'Codex must not dispose shared rendering infrastructure');
+assert.equal((source.match(/requestAnimationFrame\(\(\)=>this\.loop\(\)\)/g)||[]).length,1,'Codex must own one animation-loop scheduler');
+console.log('Codex viewer lifecycle: one canvas, one loop, stale replacement, scoped disposal, failure preservation and context recovery passed');

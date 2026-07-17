@@ -30,11 +30,13 @@ const REGIONS = {
 };
 
 /* radar axes: strength, conductivity, flexibility, stability, sustainability, affordability (all 0-10, kind:'game') */
-function M(o){ return Object.assign({
+function M(o){ const material=Object.assign({
   discovered:false, masteryXP:0, dupes:0, fav:false,
   refs:[], lore:'', limitations:[], synth:[], apps:[], tags:[], related:[],
   sim:null, load:null, specimen:'crystal',
-}, o); }
+}, o);
+  if(material.sim&&!material.sim.scope) material.sim.scope='Simplified educational tensile surrogate; values are indicative and not a design allowables dataset.';
+  return material; }
 
 const MATERIALS = {
 
@@ -186,7 +188,7 @@ liquidmetal: M({ id:'liquidmetal', code:'MAT-033', name:'Liquid Metal (EGaIn)', 
   lore:'A responsive silver organism. It remembers the shape of every channel it has ever filled.',
   related:['nitinol','pedot','mxene'], tags:['conductive','stretchable','liquid','soft','wearable','selfhealing'],
   refs:['Dickey et al., Adv. Funct. Mater. 18, 1097 (2008)'],
-  sim:{E:0.001, uts:0.0005, failStrain:3, ductile:true, conduct:true},
+  sim:{E:0.001, uts:0.0005, failStrain:3, ductile:true, conduct:true,scope:'TODO scientific review: a free-standing tensile curve is not physically representative of EGaIn. This surrogate only illustrates electrical continuity in a stretched, encapsulated channel.'},
   load:{rho:6250, sigma:0.1, E:0.001, tmin:15, tmax:1300, costkg:600, co2:30, fatigue:5, repair:5, corr:2, manu:3, recy:4} }),
 
 silicon: M({ id:'silicon', code:'MAT-014', name:'Silicon', formula:'Si', family:'semi', cls:'Elemental semiconductor',
@@ -230,11 +232,11 @@ gaas: M({ id:'gaas', code:'MAT-052', name:'Gallium Arsenide', formula:'GaAs', fa
   sim:{E:86, uts:5, failStrain:0.015, ductile:false, conduct:false},
   load:{rho:5320, sigma:60, E:86, tmin:-269, tmax:450, costkg:900, co2:80, fatigue:2, repair:0, corr:3, manu:2, recy:2} }),
 
-perovskite: M({ id:'perovskite', code:'MAT-088', name:'Halide Perovskite', formula:'e.g. CH₃NH₃PbI₃', family:'energy', cls:'Hybrid photovoltaic crystal',
+perovskite: M({ id:'perovskite', code:'MAT-088', name:'Halide Perovskite (MAPbI₃ model)', formula:'CH₃NH₃PbI₃ shown', family:'energy', cls:'Hybrid lead-halide perovskite family',
   rarity:'epic', region:'nexus', color:'#e8b8f8', specimen:'gem',
   summary:'The fastest-improving solar material in history — solution-printed crystals with a tunable bandgap.',
-  desc:'ABX₃ crystals whose bandgap tunes with halide mix. Lab cells leapt from 3.8% (2009) past 26% efficiency in a decade — printable from solution at low temperature. Moisture, heat and lead content stand between them and ubiquity.',
-  bonding:{hybrid:'Ionic framework + organic cation', structure:'ABX₃ perovskite lattice', note:'Corner-sharing PbI₆ octahedra; soft, defect-tolerant lattice.'},
+  desc:'This family entry uses methylammonium lead iodide (MAPbI₃) as its named structure model. Lead-halide ABX₃ compositions tune their bandgap through A-site, metal and halide chemistry, but those variants are not one interchangeable crystal. Moisture, heat and lead content remain central deployment constraints.',
+  bonding:{hybrid:'Ionic framework + organic cation', structure:'MAPbI₃ P4mm model at 400 K', note:'Displayed cell: corner-sharing PbI₆ octahedra with one idealised methylammonium orientation. Family property ranges are not exact values for this single model.'},
   props:[
     {k:'Bandgap', v:'1.5–2.3', u:'eV (composition-tuned)', kind:'lit', icon:'ele'},
     {k:'Cell efficiency (lab)', v:'>26', u:'% (single junction record)', kind:'lit', icon:'opt'},
@@ -247,14 +249,14 @@ perovskite: M({ id:'perovskite', code:'MAT-088', name:'Halide Perovskite', formu
   lore:'A shifting optical crystal that drinks light greedily and gives most of it back as electricity — while it lasts.',
   related:['silicon','gaas'], tags:['solar','optical','printable','energy','tunable'],
   refs:['Kojima et al., J. Am. Chem. Soc. 131, 6050 (2009)','NREL Best Research-Cell Efficiency Chart'],
-  sim:{E:15, uts:0.5, failStrain:0.01, ductile:false, conduct:false},
+  sim:{E:15, uts:0.5, failStrain:0.01, ductile:false, conduct:false,scope:'TODO scientific review: idealised brittle MAPbI₃ surrogate; reconcile phase, orientation and thin-film morphology before quantitative use.'},
   load:{rho:4100, sigma:10, E:15, tmin:-40, tmax:85, costkg:150, co2:15, fatigue:1, repair:1, corr:1, manu:4, recy:1} }),
 
 sic: M({ id:'sic', code:'MAT-049', name:'Silicon Carbide', formula:'SiC', family:'ceramic', cls:'Wide-bandgap ceramic semiconductor',
   rarity:'rare', region:'ceramic', color:'#6a7080', specimen:'shard',
   summary:'A black crystalline shard that shrugs at heat, voltage and abrasion alike.',
   desc:'Nearly diamond-hard, stable past 1600 °C, and a wide-bandgap semiconductor now displacing silicon in electric-vehicle inverters. Exists in hundreds of polytypes; 4H-SiC rules power electronics.',
-  bonding:{hybrid:'sp³ covalent (Si–C)', structure:'Polytypic tetrahedral lattice', note:'~250 known stacking polytypes.'},
+  bonding:{hybrid:'sp³ covalent (Si–C)', structure:'3C-SiC zinc-blende model shown', note:'SiC is polytypic. The viewer shows cubic 3C-SiC; the 3.26 eV property below is explicitly for 4H-SiC.'},
   props:[
     {k:'Bandgap', v:'3.26', u:'eV (4H)', kind:'lit', icon:'ele'},
     {k:'Hardness', v:'~9.5', u:'Mohs', kind:'lit', icon:'str'},
@@ -264,11 +266,11 @@ sic: M({ id:'sic', code:'MAT-049', name:'Silicon Carbide', formula:'SiC', family
   radar:{strength:8.5, conductivity:4.5, flexibility:.5, stability:9.5, sustainability:5, affordability:4},
   apps:['EV Power Electronics','Abrasives','Brake Discs','Armour','Mirrors'],
   synth:[{n:'Acheson process', d:'Sand + coke at 2500 °C since 1893.'},{n:'PVT growth', d:'Semiconductor boules by sublimation.'}],
-  limitations:['Brittle','Hard to machine','Wafer cost above silicon'],
+  limitations:['Brittle','Hard to machine','Wafer cost above silicon','Displayed 3C-SiC cell is not the 4H polytype used for the listed power-electronics bandgap'],
   lore:'First found in a meteor crater. The Wilds keep their sharpest edges black.',
   related:['diamond','alumina','silicon'], tags:['hard','thermal','power','semiconductor','armour'],
   refs:['Kimoto & Cooper, Fundamentals of SiC Technology (2014)'],
-  sim:{E:450, uts:21, failStrain:0.01, ductile:false, conduct:false},
+  sim:{E:450, uts:21, failStrain:0.01, ductile:false, conduct:false,scope:'TODO scientific review: ideal-crystal strength surrogate. It must not be read as a 4H-SiC engineering tensile allowable.'},
   load:{rho:3210, sigma:550, E:450, tmin:-150, tmax:1600, costkg:80, co2:25, fatigue:3, repair:0, corr:5, manu:2, recy:2} }),
 
 alumina: M({ id:'alumina', code:'MAT-025', name:'Alumina', formula:'Al₂O₃', family:'ceramic', cls:'Oxide ceramic',
@@ -294,18 +296,18 @@ alumina: M({ id:'alumina', code:'MAT-025', name:'Alumina', formula:'Al₂O₃', 
 
 zirconia: M({ id:'zirconia', code:'MAT-027', name:'Zirconia (YSZ)', formula:'ZrO₂ (Y-stabilised)', family:'ceramic', cls:'Toughened oxide ceramic',
   rarity:'rare', region:'ceramic', color:'#f0ece0', specimen:'shard',
-  summary:'The ceramic that fights back — transformation toughening blunts cracks as they run.',
-  desc:'Yttria-stabilised zirconia meets an advancing crack tip with a tetragonal→monoclinic phase change that expands and squeezes the crack shut — “ceramic steel”. Also an oxygen-ion conductor at heat, running sensors and fuel cells.',
-  bonding:{hybrid:'Ionic', structure:'Stabilised tetragonal/cubic fluorite', note:'Stress-induced phase change toughens.'},
+  summary:'A YSZ family entry: transformation-toughened 3Y-TZP properties beside a separately declared cubic defect model.',
+  desc:'Yttria-stabilised zirconia is composition and phase dependent. Low-yttria 3Y-TZP grades exploit a tetragonal→monoclinic transformation to resist cracks; higher-yttria cubic grades favour oxygen-ion conduction. The viewer deliberately shows one 10.3 mol% Y₂O₃ cubic vacancy configuration, while toughening properties below are labelled as 3Y-TZP grade values.',
+  bonding:{hybrid:'Ionic', structure:'Cubic fluorite defect model shown', note:'Displayed composition: 10.3 mol% Y₂O₃, Zr₂₆Y₆O₆₁. It is not the 3Y-TZP grade represented by the toughening values.'},
   props:[
-    {k:'Fracture toughness', v:'5–10', u:'MPa·m¹ᐟ²', kind:'lit', note:'exceptional for a ceramic', icon:'str'},
-    {k:'Flexural strength', v:'0.9–1.2', u:'GPa', kind:'lit', icon:'str'},
+    {k:'Fracture toughness', v:'5–10', u:'MPa·m¹ᐟ²', kind:'lit', note:'representative 3Y-TZP grade; not the displayed cubic composition', icon:'str'},
+    {k:'Flexural strength', v:'0.9–1.2', u:'GPa', kind:'lit', note:'representative 3Y-TZP grade; processing dependent', icon:'str'},
     {k:'Density', v:'6.05', u:'g/cm³', kind:'lit', icon:'den'},
   ],
   radar:{strength:8, conductivity:1, flexibility:1, stability:8.5, sustainability:5, affordability:5},
   apps:['Dental Crowns','Thermal Barrier Coatings','Oxygen Sensors','Fuel Cells','Knives'],
   synth:[{n:'Co-precipitation + sintering', d:'3 mol% yttria for 3Y-TZP grades.'}],
-  limitations:['Low-temperature hydrothermal ageing','Heavy for a ceramic','Insulating until very hot'],
+  limitations:['Low-temperature hydrothermal ageing','Heavy for a ceramic','Insulating until very hot','Displayed cubic 10.3 mol% Y₂O₃ model and 3Y-TZP mechanical properties describe different declared grades'],
   lore:'A stone that heals its own wounds — once.',
   related:['alumina','sic'], tags:['tough','biocompatible','thermal','dental','ceramic'],
   refs:['Garvie, Hannink & Pascoe, Nature 258, 703 (1975)'],

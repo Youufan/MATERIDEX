@@ -15,7 +15,7 @@ assert.match(source,/token!==this\.mountToken/,'stale specimen requests must be 
 assert.match(source,/disposeStructureGroup\(previous\)/,'only the previous specimen group should be disposed');
 assert.match(source,/disposeStructureGroup\(next&&next\.group\)/,'a stale built specimen must be disposed');
 assert.match(structures,/function disposeStructureGroup\(root\)/,'all structure viewers must share scoped disposal');
-assert.match(codex,/scene\.remove\(this\.spec\); disposeStructureGroup\(this\.spec\)/,'candidate switching must dispose only the replaced Codex structure');
+assert.match(codex,/scene\.remove\(previous\);disposeStructureGroup\(previous\)/,'candidate switching must dispose only the replaced Codex structure');
 assert.doesNotMatch(source,/renderer\.dispose\(|\.r\.dispose\(|scene\.clear\(|\.sc\.clear\(/,'shared rendering infrastructure must not be disposed or cleared');
 assert.match(source,/ResizeObserver/,'viewer must respond to container resizing');
 assert.match(source,/webglcontextlost/,'viewer must handle WebGL context loss');

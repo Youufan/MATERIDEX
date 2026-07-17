@@ -1,0 +1,35 @@
+'use strict';
+const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert');
+const root=path.join(__dirname,'..'),ctx={module:{exports:{}},exports:{}};vm.createContext(ctx);
+vm.runInContext(fs.readFileSync(path.join(root,'js/data.js'),'utf8')+'\nthis.__MATERIALS=MATERIALS;this.__MAT_LIST=MAT_LIST;this.__FAMILIES=FAMILIES;',ctx,{filename:'js/data.js'});
+const {STRUCTURE_DATA}=require('../js/structure-data.js'),M=ctx.__MATERIALS,ids=ctx.__MAT_LIST,F=ctx.__FAMILIES;
+const specimenTypes=new Set(['veil','smoke','gem','ribbon','tube','weave','web','layers','membrane','bloom','reef','blob','coil','pane','ingot','shard','lattice3d','crystal']);
+const clean=value=>String(value??'').replace(/\|/g,'\\|').replace(/\s+/g,' ').trim();
+const rows=[];let errors=0,warnings=0;
+assert.equal(ids.length,26,'material inventory changed; review audit expectations');
+for(const id of ids){const m=M[id],s=STRUCTURE_DATA[id],issues=[],todos=[];
+  for(const field of ['name','formula','family','cls','desc','summary','bonding','props','specimen','load'])if(!m?.[field])issues.push(`missing ${field}`);
+  if(!F[m?.family])issues.push('unknown category');
+  if(!s)issues.push('missing structure visual');
+  if(!specimenTypes.has(m?.specimen))issues.push('unsupported specimen visual');
+  if(!Array.isArray(m?.props)||!m.props.length)issues.push('missing key properties');
+  const labels=(m?.props||[]).map(p=>p.k),duplicates=labels.filter((v,i)=>labels.indexOf(v)!==i);if(duplicates.length)issues.push('duplicate property labels');
+  for(const p of m?.props||[])if(!p.v||!p.u||!p.kind)issues.push(`incomplete property ${p.k||'record'}`);
+  if(!m?.refs?.length)issues.push('missing material references');
+  if(!m?.sim?.scope)issues.push('missing simulation scope disclosure');
+  if(m?.formula?.includes('e.g.'))todos.push('replace generic example formula with a named displayed composition');
+  if(id==='liquidmetal')todos.push('replace tensile surrogate with an encapsulated-channel electrical continuity model');
+  if(id==='perovskite')todos.push('verify family-wide performance values separately from the displayed MAPbI3 phase');
+  if(id==='sic')todos.push('add a 4H-SiC structure if the power-electronics property set remains 4H-specific');
+  if(id==='zirconia')todos.push('separate 3Y-TZP mechanical and high-yttria cubic conductor grades into distinct future records');
+  if(id==='hydrogel')todos.push('declare a specific polymer formulation before presenting formulation-specific properties');
+  if(id==='mycelium')todos.push('declare species, substrate and density before presenting design values');
+  if((s?.limitations||[]).length)todos.push(...s.limitations.map(x=>`model limitation: ${x}`));
+  errors+=issues.length;warnings+=todos.length;
+  rows.push({id,m,s,issues,todos});
+}
+const today=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Singapore'});
+const report=`# MATERIDEX material audit\n\nGenerated ${today}. This inventory checks every current material entry, its visible metadata, structure representation, specimen archetype and key property records. Code-generated specimens do not require separate image assets. TODO items mark scientific work that needs a named composition, grade or source rather than an invented value.\n\n## Summary\n\n* Materials audited: ${rows.length}\n* Implementation errors: ${errors}\n* Scientific limitations and TODO items: ${warnings}\n* Missing material-specific image assets: 0; material structures and specimens are rendered from shared data and code\n* Generic white-ball fallbacks: 0\n\n| ID | Displayed material | Formula | Category | Structure visual | Specimen | Properties | Result | Scientific limitation or TODO |\n|---|---|---|---|---|---|---:|---|---|\n${rows.map(({id,m,s,issues,todos})=>`| ${id} | ${clean(m.name)} | ${clean(m.formula)} | ${clean(F[m.family]?.name||m.family)} | ${clean(s?`${s.structureType}; ${s.exact?'crystallographic':'representative'}`:'missing')} | ${clean(m.specimen)} | ${(m.props||[]).length} | ${issues.length?'FAIL: '+clean(issues.join('; ')):'PASS'} | ${clean(todos.join('; ')||'No additional limitation recorded')} |`).join('\n')}\n\n## Audit boundaries\n\nThe audit verifies completeness and internal consistency in the repository. It does not certify property values as engineering allowables. Ranges can depend strongly on grade, orientation, processing, porosity, temperature and test method. The shared structure audit provides structure provenance and modelling assumptions in more detail.\n`;
+fs.writeFileSync(path.join(root,'MATERIAL_AUDIT.md'),report);
+if(errors){rows.filter(r=>r.issues.length).forEach(r=>console.error(r.id,r.issues.join('; ')));process.exit(1);}
+console.log(`Material audit: ${rows.length}/${rows.length} entries complete; ${warnings} declared scientific limitations or TODOs`);

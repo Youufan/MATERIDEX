@@ -89,3 +89,4 @@ window.addEventListener('load',()=>{
   if(!HAS3D) toast('3D acceleration unavailable — running in flat-lattice mode','verm','alert',6000);
 });
 window.addEventListener('error',e=>{ console.error(e.error||e.message); });
+window.addEventListener('unhandledrejection',e=>{ console.error('Unhandled promise rejection',e.reason); });

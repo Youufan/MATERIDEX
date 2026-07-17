@@ -75,7 +75,7 @@ const GFX={
     transparent:true, opacity, envMapIntensity:1.4, clearcoat:1, clearcoatRoughness:.04,
     side:THREE.DoubleSide, depthWrite:false }); },
   crystal(hex){ const c=new THREE.Color(hex); return new THREE.MeshPhysicalMaterial({
-    color:c, metalness:.05, roughness:.02, transmission:.7, ior:2.2, thickness:1.5,
+    color:c, metalness:.05, roughness:.02, transmission:.7, ior:2.2,
     transparent:true, opacity:.92, envMapIntensity:2, emissive:c.clone().multiplyScalar(.22),
     clearcoat:1, clearcoatRoughness:.03, flatShading:true }); },
   /* iridescent — fresnel hue-shift injected into physical material */

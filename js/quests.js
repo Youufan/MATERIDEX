@@ -273,6 +273,9 @@ function renderCore(){ const el=$('#core-body'); if(!el) return;
         ${a?`<span class="tiny dim">${Object.keys(ap.done).length} of ${a.steps.length} recognised${ap.rewarded?' · complete':''}</span>`:''}</div>
     </div></div>
   <div id="core-grid">
+    ${!nDisc&&fm.status==='not-started'?`<div class="panel lens core-first-minute" style="grid-column:1/-1"><div class="panel-title">Your first minute</div><div class="panel-body">
+      <div class="core-start-steps"><p><b>1 · Find</b>Open the Index or Atlas and choose a material.</p><p><b>2 · Inspect</b>Rotate its structure, read the legend, then scan it.</p><p><b>3 · Apply</b>Use Lab and Compare; discoveries enter your Collection automatically.</p></div>
+    </div></div>`:''}
     <div class="panel lens"><div class="panel-title">Research standing</div><div class="panel-body">
       <div class="kv"><span>Rank</span><b>${r.n}</b></div>
       <div class="kv"><span>XP</span><b>${fmt(S.xp)}${next?' / '+fmt(next.xp):''}</b></div>
@@ -285,7 +288,7 @@ function renderCore(){ const el=$('#core-body'); if(!el) return;
         <div><b style="letter-spacing:.14em;font-size:12px">${MATERIALS[lastDisc[0]].name.toUpperCase()}</b><br>
         <span class="tiny dim">${new Date(lastDisc[1]).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})}</span></div></div>
       <button class="ctl sm" style="margin-top:12px" id="core-lastdisc">Open entry</button>`
-      :'<p class="tiny dim">Nothing yet — scan your first specimen.</p>'}
+      :'<p class="tiny dim">Nothing yet. Open a material, inspect its structure and use Scan Structure to add it here.</p>'}
     </div></div>
     <div class="panel lens"><div class="panel-title">Passive progression</div><div class="panel-body">
       ${next?`<div class="setline"><div class="sl-top"><span>${next.n}</span><b>${fmt(next.xp-S.xp)} XP away</b></div>
