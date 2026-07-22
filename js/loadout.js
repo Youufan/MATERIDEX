@@ -19,6 +19,16 @@ const CMP_ROWS=[
   ['Embodied carbon', m=>m.load.co2, v=>v.toFixed(1)+' kgCO₂e/kg', false],
   ['Recyclability', m=>m.load.recy, v=>'★'.repeat(Math.round(v))+'☆'.repeat(5-Math.round(v)), true],
 ];
+const COMPARE_USES={
+  wearable:{title:'Flexible wearable electrode',axes:['conductivity','flexibility','stability','manufacturability','cost','transparency'],candidates:['pedot','graphene','mxene','liquidmetal'],
+    note:'Balance electrical transport with repeated bending, environmental stability, processing and optical needs. Silver nanowires are not scored because they are not yet a verified archive entry.'},
+  thermal:{title:'Compact heat spreader',axes:['thermal transport','density','electrical isolation','interface reliability','manufacturability','cost'],candidates:['diamond','graphene','sic','alli'],
+    note:'The useful choice depends on heat-flow direction, electrical isolation, joining method, geometry and budget.'},
+  aerospace:{title:'Lightweight structural panel',axes:['specific strength','stiffness','fatigue','temperature','repairability','cost'],candidates:['cfrp','ti64','alli','peek'],
+    note:'Compare specific properties and failure modes, then account for interfaces and repair—not strength alone.'},
+  optical:{title:'Transparent protective window',axes:['transmission','hardness','fracture tolerance','thermal stability','manufacturability','cost'],candidates:['diamond','glass','silicone','alumina'],
+    note:'Optical range, thickness, surface condition and impact environment determine the appropriate compromise.'}
+};
 const Loadout={ risks:[],
 init(){
   if(!Object.keys(S.loadoutSlots).length) S.loadoutSlots={nose:'ti64',skin:'cfrp',frame:'ti64',shield:'alli'};
@@ -31,6 +41,8 @@ init(){
   $('#lo-test').addEventListener('click',()=>this.test());
   $('#lo-save').addEventListener('click',()=>this.saveConfig());
   $('#lo-submit').addEventListener('click',()=>this.submit());
+  const use=$('#cmp-use');if(use){use.value=S.flags.compareUse||'wearable';use.addEventListener('change',()=>{S.flags.compareUse=use.value;save();this.renderContext();});}
+  $('#cmp-load-use')?.addEventListener('click',()=>{const choice=COMPARE_USES[$('#cmp-use').value];S.compareSel=choice.candidates.filter(id=>MATERIALS[id]).slice(0,3);save();this.renderTray();this.renderCompare();toast(`Suggested evidence set loaded for ${choice.title.toLowerCase()}.`);});
 },
 addCompare(id){ if(!S.compareSel.includes(id)){ S.compareSel=[id,...S.compareSel].slice(0,3); save(); }
   this.renderTray(); this.renderCompare(); },
@@ -242,8 +254,21 @@ renderCompare(){ const ids=S.compareSel.filter(id=>MATERIALS[id]);
     CMP_ROWS.map(([label,fn,fmtf,hiGood])=>{ const vals=ids.map(id=>fn(MATERIALS[id]));
       const best= hiGood? Math.max(...vals) : Math.min(...vals);
       return `<tr><td>${label}</td>${vals.map(v=>`<td class="${v===best&&ids.length>1?'best':''}">${fmtf(v)}</td>`).join('')}</tr>`; }).join('');
+  this.renderContext();
   if(window.FirstMission) FirstMission.renderComparisonTable();
   if(window.FirstMission) FirstMission.renderComparison(); },
+renderContext(){const key=$('#cmp-use')?.value||S.flags.compareUse||'wearable',use=COMPARE_USES[key],el=$('#cmp-context'),note=$('#cmp-use-note');if(!use||!el)return;
+  if(note)note.textContent=use.note;
+  const selected=S.compareSel.filter(id=>MATERIALS[id]);
+  const cards=selected.map(id=>{const m=MATERIALS[id],r=m.radar||{},strengths=[],cautions=[];
+    if((r.conductivity||0)>=7)strengths.push('high relative conductivity');if((r.flexibility||0)>=7)strengths.push('flexibility');if((r.stability||0)>=8)strengths.push('environmental stability');
+    if((r.strength||0)>=8)strengths.push('high strength');if((r.affordability||0)>=7)strengths.push('lower relative cost');
+    if(!strengths.length)strengths.push('a specialised property profile');if(m.limitations&&m.limitations[0])cautions.push(m.limitations[0]);
+    return `<article><span class="command-kind">${FAMILIES[m.family].name}</span><b>${m.name}</b><p><strong>Useful when:</strong> ${strengths.join(', ')}.</p><p><strong>Trade-off:</strong> ${cautions[0]||'Application-specific processing data should be reviewed.'}</p></article>`;}).join('');
+  const candidates=use.candidates.filter(id=>MATERIALS[id]).map(id=>MATERIALS[id].name).join(', ');
+  el.innerHTML=`<div class="cmp-context-head"><div><span class="eyebrow">Decision lens</span><h3>${use.title}</h3></div><div><span class="eyebrow">Relevant evidence</span><p>${use.axes.join(' · ')}</p></div></div>
+    <p class="cmp-candidate-note">Archive candidates: ${candidates}. These are prompts for investigation, not a ranked shortlist.</p><div class="cmp-tradeoffs">${cards||'<p class="tiny dim">Add materials to expose their application-specific trade-offs.</p>'}</div>
+    <p class="tiny dim">No universal winner is declared. The correct decision depends on operating conditions, geometry, processing route and acceptable failure mode.</p>`;},
 test(){ this.recalc(); const o=this.outcome; Sound.glass();
   const verdict= o.nUsed<4? 'Incomplete — assign at least nose, skin, frame and shield before a meaningful test.' :
     o.unres? `Structurally ${o.safety>=1?'sound':'marginal'}, but ${o.unres} unresolved interface/thermal ${o.unres>1?'risks':'risk'} would fail certification.` :

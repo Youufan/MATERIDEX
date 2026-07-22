@@ -107,6 +107,9 @@ diamond: M({ id:'diamond', code:'MAT-002', name:'Diamond', formula:'C (sp³)', f
   lore:'The same atom as soot, arranged with different conviction.',
   related:['graphene','sic','cnt'], tags:['hard','thermal','optical','insulator','carbon'],
   refs:['Field, The Properties of Natural and Synthetic Diamond (1992)'],
+  confidence:{level:'High',note:'Crystal structure and the listed bulk properties are well established; values remain sensitive to purity, isotope content, orientation and test method.'},
+  lastReviewed:'22 July 2026',
+  conditions:'Representative room-temperature values unless a property note states otherwise.',
   sim:{E:1100, uts:95, failStrain:0.08, ductile:false, conduct:false},
   load:{rho:3510, sigma:2800, E:1100, tmin:-269, tmax:700, costkg:100000, co2:100, fatigue:3, repair:0, corr:5, manu:1, recy:1} }),
 

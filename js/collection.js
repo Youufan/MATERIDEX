@@ -1,5 +1,6 @@
 /* ════════════════ COLLECTION VAULT ════════════════ */
-let collSort='recent', collSel=null;
+let collSort='recent', collSel=null, collQuery='', collView='grid';
+const collFilters={family:'',property:'',application:'',rarity:'',status:''};
 const Vault3D={ three:null, spec:null, structure:null, activeId:null, rot:{x:-.2,y:.3}, drag:null,
   mountToken:0,loopStarted:false,contextLost:false,renderFailed:false,failedId:null,resizeObserver:null,
   mount(id){ const wrap=$('#specimen3d-wrap'),cv=$('#specimen3d'); if(!wrap||!cv||!MATERIALS[id]) return;
@@ -132,7 +133,31 @@ function renderCollection(){
   const discIds=Object.keys(S.discovered);
   $('#coll-count').textContent=discIds.length+' / '+MAT_LIST.length;
   const rOrder={anomalous:6,legendary:5,epic:4,rare:3,uncommon:2,common:1};
-  let ids=[...MAT_LIST];
+  let ids=[...MAT_LIST].filter(id=>{
+    const m=MATERIALS[id], discovered=!!S.discovered[id], progress=materialProgress(id);
+    const hay=[m.name,m.formula,m.family,m.cls,m.summary,m.desc,m.bonding&&m.bonding.structure,
+      ...(m.apps||[]),...(m.tags||[])].filter(Boolean).join(' ').toLowerCase();
+    if(collQuery&&!hay.includes(collQuery))return false;
+    if(collFilters.family&&m.family!==collFilters.family)return false;
+    if(collFilters.application&&!(m.apps||[]).some(a=>a.toLowerCase().includes(collFilters.application)))return false;
+    if(collFilters.rarity&&m.rarity!==collFilters.rarity)return false;
+    if(collFilters.status==='locked'&&discovered)return false;
+    if(collFilters.status==='discovered'&&!discovered)return false;
+    if(collFilters.status==='studied'&&(!discovered||progress.done<3))return false;
+    if(collFilters.status==='mastered'&&(!discovered||progress.pct<100))return false;
+    if(collFilters.property){
+      const radar=m.radar||{}, tags=(m.tags||[]).join(' ').toLowerCase(), props=m.props||{};
+      const match={
+        conductive:tags.includes('conduct')||!!props.electrical||!!props.conductivity,
+        strong:tags.includes('strength')||(radar.strength||0)>=7,
+        flexible:tags.includes('flex')||(radar.flex||0)>=7||(radar.flexibility||0)>=7,
+        thermal:tags.includes('thermal')||!!props.thermal,
+        optical:tags.includes('optical')||tags.includes('transparent')||!!props.optical||!!props.transparency
+      }[collFilters.property];
+      if(!match)return false;
+    }
+    return true;
+  });
   ids.sort((a,b)=>{ const da=!!S.discovered[a],db=!!S.discovered[b];
     if(da!==db) return da?-1:1;
     if(collSort==='recent') return (S.discovered[b]||0)-(S.discovered[a]||0);
@@ -140,17 +165,22 @@ function renderCollection(){
     if(collSort==='family') return MATERIALS[a].family.localeCompare(MATERIALS[b].family);
     if(collSort==='mastery') return (S.mastery[b]||0)-(S.mastery[a]||0);
     return 0; });
-  grid.innerHTML=ids.map(id=>{ const m=MATERIALS[id],d=!!S.discovered[id];
+  grid.classList.toggle('list-view',collView==='list');
+  grid.innerHTML=ids.map(id=>{ const m=MATERIALS[id],d=!!S.discovered[id],progress=materialProgress(id);
+    const state=!d?'locked':progress.pct===100?'mastered':progress.done>=3?'studied':'discovered';
     if(!d) return `<div class="pod locked" data-podid="${id}" title="Undiscovered — ${REGIONS[m.region].name}">
       <div class="pod-globe"></div>
       <div class="silhouette"><canvas width="200" height="230"></canvas></div>
-      <div class="pod-label"><b class="dim">???</b><small>${m.code} · ${REGIONS[m.region].name}</small></div></div>`;
-    return `<div class="pod ${collSel===id?'sel':''}" data-podid="${id}">
+      <span class="pod-state">uncatalogued</span>
+      <div class="pod-label"><b class="dim">${FAMILIES[m.family].name}</b><small>${m.code} · ${REGIONS[m.region].name}</small></div></div>`;
+    return `<div class="pod ${state} ${collSel===id?'sel':''}" data-podid="${id}">
       <div class="pod-globe"><canvas width="200" height="230"></canvas></div>
+      <span class="pod-state">${state}</span>
       ${(S.dupes[id]||0)>0?`<span class="dupe">×${S.dupes[id]+1}</span>`:''}
       <button class="fav ${S.favs[id]?'on':''}" data-favid="${id}" aria-label="Favourite ${m.name}">
         <svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 5.9L12 16.4 6.7 19.3l1.2-5.9L3.4 9.3l6-.7z"/></svg></button>
-      <div class="pod-label"><b>${m.name}</b><small>${m.code} · <span class="rarity ${m.rarity}" style="font-size:8px">${m.rarity}</span></small></div></div>`; }).join('');
+      <div class="pod-label"><b>${m.name}</b><small>${m.code} · ${FAMILIES[m.family].name}</small></div></div>`; }).join('')||
+      `<div class="collection-empty"><span class="eyebrow">No matching records</span><p>Adjust the archive filters or search a broader material term.</p></div>`;
   // draw thumbs
   $$('#coll-grid .pod').forEach(pod=>{ const id=pod.dataset.podid,m=MATERIALS[id];
     const cv=pod.querySelector('canvas'); const ctx=cv.getContext('2d');
@@ -161,7 +191,7 @@ function renderCollection(){
     } else drawPodGlyph(ctx,m,200,230,1);
     pod.addEventListener('click',e=>{ if(e.target.closest('.fav')) return;
       if(pod.classList.contains('locked')){ toast(`Unknown specimen — signals trace to ${REGIONS[m.region].name}`,'','hex'); return; }
-      collSel=id; renderCollection(); collDetail(id); Sound.click(); }); });
+      collSel=id; renderCollection(); openCollectionDrawer(id); Sound.click(); }); });
   $$('#coll-grid [data-favid]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
     const id=b.dataset.favid; S.favs[id]=!S.favs[id]; save(); renderCollection(); }));
   // sets
@@ -177,6 +207,13 @@ function renderCollection(){
   $('#dupe-convert').disabled=!dupeTotal;
   const badge=$('#coll-badge'); if(discIds.length){ badge.style.display='flex'; badge.textContent=discIds.length; }
 }
+function openCollectionDrawer(id){
+  const shell=$('#coll-right'); if(!shell)return;
+  shell.classList.add('open');shell.setAttribute('aria-hidden','false');collDetail(id);
+  requestAnimationFrame(()=>{const close=shell.querySelector('[data-coll-close]');if(close)close.focus();});
+}
+function closeCollectionDrawer(){const shell=$('#coll-right');if(!shell)return;
+  shell.classList.remove('open');shell.setAttribute('aria-hidden','true');}
 function drawSilhouette(ctx,m){ ctx.save(); ctx.translate(0,0); ctx.globalAlpha=.8;
   ctx.strokeStyle='rgba(205,188,247,.25)'; drawPodGlyphOutline(ctx,m); ctx.restore(); }
 function drawPodGlyphOutline(ctx,m){ const cx=100,cy=108,R=40;
@@ -187,9 +224,10 @@ function drawPodGlyphOutline(ctx,m){ const cx=100,cy=108,R=40;
   ctx.stroke(); }
 function collDetail(id){ const m=MATERIALS[id]; const el=$('#coll-detail'); const ml=masteryLevel(id);
   const info=$('#coll-detail-info');if(!el||!info)return;
+  const progress=materialProgress(id),study=progress.pct===100?'Mastered':progress.done>=3?'Studied':'Discovered';
   info.innerHTML=`
     <h3 class="display" style="font-size:26px;margin-top:12px">${m.name}</h3>
-    <div class="row" style="gap:10px;margin:4px 0 10px"><span class="mono tiny dim">${m.code}</span><span class="rarity ${m.rarity}">${m.rarity}</span></div>
+    <div class="row" style="gap:10px;margin:4px 0 10px"><span class="mono tiny dim">${m.code}</span><span class="rarity ${m.rarity}">${m.rarity}</span><span class="study-state">${study}</span></div>
     <p class="tiny" style="font-style:italic;color:var(--lilac);line-height:1.65">${m.lore}</p>
     <div class="divider"></div>
     <div class="kv"><span>Mastery</span><b>Lv. ${ml.lv} — ${MASTERY_NAMES[ml.lv]}</b></div>
@@ -202,15 +240,24 @@ function collDetail(id){ const m=MATERIALS[id]; const el=$('#coll-detail'); cons
     <div class="ctl-group" style="margin-top:14px">
       <button class="ctl sm primary" id="cd-open">Open entry</button>
       <button class="ctl sm" id="cd-sanctum">Display in Sanctum</button></div>
-    <p class="tiny dim" style="margin-top:8px">Drag the specimen to rotate.</p>`;
+    <p class="tiny dim" style="margin-top:8px">Drag the specimen to rotate. Structure source and modelling notes are available in the full entry.</p>`;
   Vault3D.mount(id);
   $('#cd-open').addEventListener('click',()=>{ Codex.show(id); nav('codex'); });
   $('#cd-sanctum').addEventListener('click',()=>{ S.sanctum=id; save(); Sound.glass();
     toast(`${m.name} now presides over your Sanctum`); logEntry(`${m.name} displayed in the personal Sanctum.`); });
 }
-$$('[data-csort]').forEach(b=>b.addEventListener('click',()=>{ $$('[data-csort]').forEach(x=>x.classList.remove('on'));
-  b.classList.add('on'); collSort=b.dataset.csort; renderCollection(); }));
+function initCollectionControls(){
+  const family=$('#coll-family'),application=$('#coll-application');
+  if(family&&!family.dataset.ready){family.dataset.ready='1';Object.entries(FAMILIES).forEach(([id,f])=>family.insertAdjacentHTML('beforeend',`<option value="${id}">${f.name}</option>`));}
+  if(application&&!application.dataset.ready){application.dataset.ready='1';const apps=[...new Set(MAT_LIST.flatMap(id=>MATERIALS[id].apps||[]))].sort();apps.forEach(a=>application.insertAdjacentHTML('beforeend',`<option value="${a.toLowerCase()}">${a}</option>`));}
+}
+$('#coll-search')?.addEventListener('input',e=>{collQuery=e.target.value.trim().toLowerCase();renderCollection();});
+['family','property','application','rarity','status'].forEach(key=>$('#coll-'+key)?.addEventListener('change',e=>{collFilters[key]=e.target.value;renderCollection();}));
+$('#coll-sort')?.addEventListener('change',e=>{collSort=e.target.value;renderCollection();});
+$$('[data-cview]').forEach(b=>b.addEventListener('click',()=>{$$('[data-cview]').forEach(x=>x.classList.toggle('on',x===b));collView=b.dataset.cview;renderCollection();}));
+$$('[data-coll-close]').forEach(b=>b.addEventListener('click',closeCollectionDrawer));
+$('#coll-more')?.addEventListener('click',()=>{const details=$('#coll-archive-details');const open=details.hidden;details.hidden=!open;$('#coll-more').setAttribute('aria-expanded',String(open));});
 $('#dupe-convert').addEventListener('click',()=>{ const dupeTotal=Object.values(S.dupes).reduce((a,b)=>a+b,0);
   if(!dupeTotal) return; const gain=dupeTotal*110; S.dupes={}; addCredits(gain,'· duplicates converted');
   logEntry(`Converted ${dupeTotal} duplicate samples into ${gain} research credits.`); renderCollection(); });
-SCREEN_HOOKS.collection={enter(){ renderCollection(); if(collSel) collDetail(collSel); }};
+SCREEN_HOOKS.collection={enter(){initCollectionControls();renderCollection();if(collSel)openCollectionDrawer(collSel);},exit(){closeCollectionDrawer();}};

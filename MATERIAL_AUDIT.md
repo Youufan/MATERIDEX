@@ -1,6 +1,6 @@
 # MATERIDEX material audit
 
-Generated 2026-07-17. This inventory checks every current material entry, its visible metadata, structure representation, specimen archetype and key property records. Code-generated specimens do not require separate image assets. TODO items mark scientific work that needs a named composition, grade or source rather than an invented value.
+Generated 2026-07-22. This inventory checks every current material entry, its visible metadata, structure representation, specimen archetype and key property records. Code-generated specimens do not require separate image assets. TODO items mark scientific work that needs a named composition, grade or source rather than an invented value.
 
 ## Summary
 

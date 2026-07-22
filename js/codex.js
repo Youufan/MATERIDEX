@@ -333,7 +333,8 @@ show(id){ const token=++this.mountToken,m=MATERIALS[id];if(!m)return;
   this.refreshPanels(); },
 refreshPanels(){ const m=MATERIALS[this.id]; const disc=!!S.discovered[this.id];
   $('#cx-name').textContent=m.name.toUpperCase();
-  $('#specimen-title').dataset.stack = (m.name.length<=9 && innerWidth>1180) ? '1' : '0';
+  /* Keep editorial titles horizontal and clear of the left-panel boundary. */
+  $('#specimen-title').dataset.stack='0';
   $('#cx-id').textContent=m.code; $('#cx-formula').textContent=m.formula;
   $('#cx-family').textContent=FAMILIES[m.family].name;
   const rr=$('#cx-rarity'); rr.textContent=m.rarity; rr.className='rarity '+m.rarity;
@@ -377,6 +378,19 @@ refreshPanels(){ const m=MATERIALS[this.id]; const disc=!!S.discovered[this.id];
     return `<div class="rel-card" data-rel="${rid}"><div class="sw" style="background:radial-gradient(circle at 35% 30%,#fff4,${rmm.color} 42%,#0008 130%);box-shadow:0 0 16px ${rmm.color}55,inset 0 2px 4px rgba(255,255,255,.3),inset 0 -4px 8px rgba(0,0,0,.5)"></div>
       <span>${known?rmm.name:'???'}</span><small class="mono dim" style="font-size:8px">${rmm.code}</small></div>`; }).join('');
   $$('#cx-related .rel-card').forEach(c=>c.addEventListener('click',()=>{ this.show(c.dataset.rel); Sound.click(); }));
+  const dossierPanel=$('#cx-dossier-panel'),dossier=$('#cx-dossier');
+  if(dossierPanel&&dossier){const isDiamond=this.id==='diamond';dossierPanel.hidden=!isDiamond;
+    if(isDiamond){dossier.innerHTML=`
+      <nav class="material-journey" aria-label="Material narrative"><span class="on">Specimen</span><i></i><span>Structure</span><i></i><span>Properties</span><i></i><span>Processing</span><i></i><span>Applications</span></nav>
+      <section class="why-material"><span class="eyebrow">Why it behaves this way</span>
+        <p>Each carbon atom forms four strong sp³ covalent bonds in a tetrahedral, three-dimensional network. With no easy slip system, the lattice strongly resists indentation, while stiff bonds transmit lattice vibrations efficiently. The same electronic structure produces a wide band gap, so undoped diamond conducts heat exceptionally well but remains an electrical insulator.</p></section>
+      <details open><summary>Structure and property context</summary><div class="dossier-detail">
+        <p><b>Structure:</b> Diamond cubic, shown as a rotatable crystallographic unit cell and repeated network.</p>
+        <p><b>Conditions:</b> ${m.conditions}</p></div></details>
+      <details><summary>Processing and production</summary><div class="dossier-detail">${m.synth.map(s=>`<p><b>${s.n}:</b> ${s.d}</p>`).join('')}</div></details>
+      <details><summary>Applications and trade-offs</summary><div class="dossier-detail"><p><b>Applications:</b> ${m.apps.join(', ')}.</p>${m.limitations.map(l=>`<p>• ${l}</p>`).join('')}</div></details>
+      <details><summary>Provenance and confidence</summary><div class="dossier-detail"><div class="confidence-row"><span>High confidence</span><span class="confidence-dots" aria-label="High confidence"><i></i><i></i><i></i></span></div>
+        <p>${m.confidence.note}</p><p><b>Source:</b> ${m.refs.join('; ')}</p><p><b>Last reviewed:</b> ${m.lastReviewed}</p></div></details>`;}}
   $('#act-track').classList.toggle('primary',!!S.tracked[this.id]);
   const mp=$('#cx-mpath');
   if(mp&&window.Quests){ mp.innerHTML=Quests.masteryPathHTML(this.id); Quests.wireMasteryPath(this.id); }
@@ -438,4 +452,4 @@ function drawRadar(cv,entries,axes){
     ctx.fillStyle=e.color+'2b'; ctx.fill();
     ctx.strokeStyle=e.color; ctx.lineWidth=1.4; ctx.shadowColor=e.color; ctx.shadowBlur=10; ctx.stroke(); ctx.shadowBlur=0; });
 }
-SCREEN_HOOKS.codex={enter(){ if(Codex.id) Codex.refreshPanels(); }};
+SCREEN_HOOKS.codex={enter(){const screen=$('#scr-codex');if(screen)screen.scrollTop=0;if(Codex.id)Codex.refreshPanels();}};

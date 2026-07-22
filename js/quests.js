@@ -257,32 +257,45 @@ function renderCore(){ const el=$('#core-body'); if(!el) return;
   const nearSet=SETS.map(s=>({s,have:s.ids.filter(id=>S.discovered[id]).length}))
     .filter(x=>x.have<x.s.ids.length).sort((x,y)=>(y.have/y.s.ids.length)-(x.have/x.s.ids.length))[0];
   const trackedIds=Object.keys(S.tracked||{}).filter(k=>S.tracked[k]);
+  const continueId=(S.recentViewed||[]).find(id=>MATERIALS[id])||(lastDisc&&lastDisc[0])||'graphene';
+  const continueMat=MATERIALS[continueId],continueProgress=materialProgress(continueId);
+  const recommendedId=(continueMat.related||[]).find(id=>MATERIALS[id]&&!S.discovered[id])||MAT_LIST.find(id=>!S.discovered[id])||continueId;
+  const recommended=MATERIALS[recommendedId];
+  const studied=MAT_LIST.filter(id=>materialProgress(id).done>=3).length;
+  const mastered=MAT_LIST.filter(id=>materialProgress(id).pct===100).length;
+  const familiesComplete=SETS.filter(set=>set.ids.every(id=>S.discovered[id])).length;
   el.innerHTML=`
-  <div id="core-hero" class="panel">
-    <div class="panel-body" style="padding:26px 28px 24px">
-      <div class="eyebrow" style="margin-bottom:10px">${fmOpen?(fm.status==='active'?'Guided Mission active':'Guided Mission paused'):a? 'Optional expedition tracked — '+a.n : 'Open exploration'}</div>
-      <h2 class="display" style="font-size:clamp(24px,2.6vw,34px);line-height:1.25;max-width:680px">${fmOpen?'Select the best material for a lightweight, conductive wearable device.':st? st.t : a? a.done : 'Every core instrument is ready. Follow your curiosity in any direction.'}</h2>
-      ${fmOpen?'<p class="tiny dim" style="margin:10px 0 16px">Inspect structure → test behaviour → compare evidence → make a defensible selection. Completed actions persist automatically.</p>':st?`<p class="tiny dim" style="margin:10px 0 16px">${st.hint||''} Progress is recognised even when you explore elsewhere.</p>`:''}
-      <div class="row wrap" style="gap:10px;margin-top:14px">
-        ${fmOpen?`<button class="ctl primary" id="core-first-mission">${fm.status==='active'?'Continue First Mission':'Resume First Mission'}</button>`:fm.status==='not-started'?'<button class="ctl primary" id="core-first-mission">Begin First Mission</button>':''}
-        ${st?'<button class="ctl" id="core-go">Continue expedition</button>':''}
-        <button class="ctl primary" data-nav-go="index">Explore the Index</button>
-        <button class="ctl primary" data-nav-go="atlas">Open the Atlas</button>
-        <button class="ctl" id="core-expeditions">${a?'Change expedition':'Begin an expedition'}</button>
-        ${a&&S.flags.qtDismissed?'<button class="ctl sm" id="core-showtracker">Show expedition indicator</button>':''}
-        ${a?`<span class="tiny dim">${Object.keys(ap.done).length} of ${a.steps.length} recognised${ap.rewarded?' · complete':''}</span>`:''}</div>
-    </div></div>
-  <div id="core-grid">
+  <div id="core-hero" class="core-continuation">
+    <div class="core-cont-copy">
+      <div class="eyebrow">${fmOpen?'Guided mission':a?'Tracked investigation':'Continue your research'}</div>
+      <h2 class="display">${fmOpen?'Select the best material for a lightweight, conductive wearable device.':st?st.t:`Continue exploring ${continueMat.name}`}</h2>
+      <p>${fmOpen?'Inspect structure, test behaviour and compare evidence before deciding.':st?(st.hint||'Your progress is recognised as you explore.'):`${continueProgress.pct}% of this entry completed · ${continueProgress.done} of ${continueProgress.total} study actions`}</p>
+      <div class="core-progress"><i style="width:${fmOpen?Math.round((fm.step||0)/9*100):continueProgress.pct}%"></i></div>
+      <div class="row wrap core-cont-actions">
+        ${fmOpen?`<button class="ctl primary" id="core-first-mission">${fm.status==='active'?'Continue mission':'Resume mission'}</button>`:`<button class="ctl primary" id="core-continue">Open ${continueMat.name}</button>`}
+        ${!fmOpen&&fm.status==='not-started'?'<button class="ctl" id="core-first-mission">Begin first mission</button>':''}
+        ${st?'<button class="ctl" id="core-go">Continue investigation</button>':''}
+        <button class="ctl" data-nav-go="index">Browse index</button>
+      </div>
+    </div>
+    <div class="core-cont-specimen" style="--mat:${continueMat.color}"><canvas id="core-cont-canvas" width="220" height="180"></canvas></div>
+  </div>
+  <div class="core-recommend">
+    <div><span class="eyebrow">Recommended discovery</span><h3 class="display">${recommended.name}</h3><p>${recommended.summary}</p></div>
+    <button class="ctl sm" id="core-recommended">Preview entry</button>
+  </div>
+  <div class="core-metrics" aria-label="Research progress">
+    <div><b>${nDisc}</b><span>Materials discovered</span></div>
+    <div><b>${studied}</b><span>Materials studied</span></div>
+    <div><b>${familiesComplete} / ${SETS.length}</b><span>Families completed</span></div>
+    <div><b>${S.expeditionsDone||0}</b><span>Investigations finished</span></div>
+    <div><b>${mastered}</b><span>Materials mastered</span></div>
+  </div>
+  <div id="core-grid" class="core-secondary-grid">
     ${!nDisc&&fm.status==='not-started'?`<div class="panel lens core-first-minute" style="grid-column:1/-1"><div class="panel-title">Your first minute</div><div class="panel-body">
       <div class="core-start-steps"><p><b>1 · Find</b>Open the Index or Atlas and choose a material.</p><p><b>2 · Inspect</b>Rotate its structure, read the legend, then scan it.</p><p><b>3 · Apply</b>Use Lab and Compare; discoveries enter your Collection automatically.</p></div>
     </div></div>`:''}
-    <div class="panel lens"><div class="panel-title">Research standing</div><div class="panel-body">
-      <div class="kv"><span>Rank</span><b>${r.n}</b></div>
-      <div class="kv"><span>XP</span><b>${fmt(S.xp)}${next?' / '+fmt(next.xp):''}</b></div>
-      <div class="kv"><span>Collection</span><b>${nDisc} / ${MAT_LIST.length}</b></div>
-      <div class="kv"><span>Realms surveyed</span><b>${Object.keys(S.regionsVisited||{}).length} / 6</b></div>
-    </div></div>
-    <div class="panel lens"><div class="panel-title">Recent discovery</div><div class="panel-body">
+    <div class="core-quiet-section"><div class="panel-title">Recent discovery</div><div class="panel-body">
       ${lastDisc?`<div class="row" style="gap:12px">
         <div style="width:44px;height:44px;border-radius:50%;flex:none;background:radial-gradient(circle at 35% 30%,#fff3,${MATERIALS[lastDisc[0]].color} 45%,#0007 130%);box-shadow:0 0 16px ${MATERIALS[lastDisc[0]].color}66"></div>
         <div><b style="letter-spacing:.14em;font-size:12px">${MATERIALS[lastDisc[0]].name.toUpperCase()}</b><br>
@@ -290,24 +303,24 @@ function renderCore(){ const el=$('#core-body'); if(!el) return;
       <button class="ctl sm" style="margin-top:12px" id="core-lastdisc">Open entry</button>`
       :'<p class="tiny dim">Nothing yet. Open a material, inspect its structure and use Scan Structure to add it here.</p>'}
     </div></div>
-    <div class="panel lens"><div class="panel-title">Passive progression</div><div class="panel-body">
+    <div class="core-quiet-section"><div class="panel-title">Research direction</div><div class="panel-body">
       ${next?`<div class="setline"><div class="sl-top"><span>${next.n}</span><b>${fmt(next.xp-S.xp)} XP away</b></div>
         <div class="tr"><i style="width:${(S.xp-r.xp)/(next.xp-r.xp)*100}%"></i></div></div>`:''}
       ${nearSet?`<div class="setline"><div class="sl-top"><span>${nearSet.s.n} set</span><b>${nearSet.have}/${nearSet.s.ids.length}</b></div>
         <div class="tr"><i style="width:${nearSet.have/nearSet.s.ids.length*100}%"></i></div>
         <p class="tiny dim" style="margin-top:4px">${nearSet.s.bonus}</p></div>`:''}
     </div></div>
-    <div class="panel lens"><div class="panel-title">Quick actions</div><div class="panel-body">
+    <div class="core-quiet-section"><div class="panel-title">Research tools</div><div class="panel-body">
       <div class="ctl-group">
         <button class="ctl sm" id="core-quicklab">Quick lab</button>
         <button class="ctl sm" data-nav-go="index">Index</button>
         <button class="ctl sm" data-nav-go="atlas">Atlas</button>
-        <button class="ctl sm" data-nav-go="expedition">Expeditions</button>
+        <button class="ctl sm" data-nav-go="expedition">Investigations</button>
         ${trackedIds.length?`<button class="ctl sm" id="core-tracked">Tracked: ${MATERIALS[trackedIds[0]].name}</button>`:''}</div>
-      <p class="tiny dim" style="margin-top:12px;line-height:1.6">Discoveries, simulations, comparisons and challenges advance relevant expeditions automatically. Tracking is optional.</p>
+      <p class="tiny dim" style="margin-top:12px;line-height:1.6">Study, test and compare materials at your own pace. Guided investigations remain optional.</p>
     </div></div>
-    <div class="panel lens" style="grid-column:1/-1"><div class="panel-title">Research log — latest</div><div class="panel-body">
-      ${recent.length? recent.map(l=>`<div class="logline ${l.kind}"><span class="lt">${new Date(l.t).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span><span class="lk"></span><span>${l.text}</span></div>`).join('')
+    <div class="core-timeline" style="grid-column:1/-1"><div class="panel-title">Recent activity</div><div class="panel-body">
+      ${recent.length? recent.map(l=>`<div class="core-event ${l.kind}"><time>${new Date(l.t).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})} · ${new Date(l.t).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</time><i></i><span>${l.text}</span></div>`).join('')
         : '<p class="tiny dim">The log is empty. Scan something.</p>'}
     </div></div>
   </div>`;
@@ -316,6 +329,9 @@ function renderCore(){ const el=$('#core-body'); if(!el) return;
   const ex=$('#core-expeditions'); if(ex) ex.addEventListener('click',()=>Quests.openPicker());
   const show=$('#core-showtracker'); if(show) show.addEventListener('click',()=>{ S.flags.qtDismissed=false; save(); Quests.renderTracker(); renderCore(); });
   const ql=$('#core-quicklab'); if(ql) ql.addEventListener('click',()=>nav('lab'));
+  const cont=$('#core-continue'); if(cont) cont.addEventListener('click',()=>{ Codex.show(continueId); nav('codex'); });
+  const rec=$('#core-recommended'); if(rec) rec.addEventListener('click',()=>{ Codex.show(recommendedId); nav('codex'); });
+  const contCv=$('#core-cont-canvas'); if(contCv) drawPodGlyph(contCv.getContext('2d'),continueMat,contCv.width,contCv.height,1);
   const ld=$('#core-lastdisc'); if(ld&&lastDisc) ld.addEventListener('click',()=>{ Codex.show(lastDisc[0]); nav('codex'); });
   const tr=$('#core-tracked'); if(tr&&trackedIds.length) tr.addEventListener('click',()=>{ Codex.show(trackedIds[0]); nav('codex'); }); }
 SCREEN_HOOKS.core={enter(){ renderCore(); }};

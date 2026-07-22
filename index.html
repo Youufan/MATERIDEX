@@ -5,11 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>MATERIDEX — Materials Codex</title>
 <meta name="description" content="An explorable universe made of matter. Discover, simulate, collect and master real materials.">
+<link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Archivo+Narrow:wght@400;500;600&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/base.css">
-<link rel="stylesheet" href="css/screens.css?v=20260717">
+<link rel="stylesheet" href="css/base.css?v=20260722d">
+<link rel="stylesheet" href="css/screens.css?v=20260722e">
 </head>
 <body>
 <canvas id="bg3d"></canvas>
@@ -120,6 +121,9 @@
     <div class="hud-stat" id="hud-credits" title="Research credits"><small>Credits</small><b>—</b></div>
     <div class="hud-stat" id="hud-streak" title="Discovery streak"><small>Streak</small><b>—</b></div>
     <div class="hud-stat" id="hud-gpa" title="Personal constellation"><small>Constellation</small><b id="hud-const">—</b></div>
+    <button class="hud-search" id="global-search-open" aria-label="Search MATERIDEX" title="Search — Command K">
+      <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg><span>Search</span><kbd>⌘ K</kbd>
+    </button>
     <button class="hud-icon-btn" id="snd-toggle" aria-label="Toggle sound" title="Sound">
       <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
     </button>
@@ -217,6 +221,10 @@
         <div class="panel-title">Related Materials</div>
         <div class="panel-body"><div class="related-strip" id="cx-related"></div></div>
       </div>
+      <div class="panel lens-r" id="cx-dossier-panel" hidden>
+        <div class="panel-title">Scientific narrative</div>
+        <div class="panel-body" id="cx-dossier"></div>
+      </div>
     </div>
     <div id="codex-actions">
       <button class="ctl primary" id="act-scan"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M11 8v6M8 11h6M20 20l-3.5-3.5"/></svg>Scan Structure</button>
@@ -239,9 +247,10 @@
       <button class="imode" data-imode="taxonomy" role="tab">Taxonomy</button>
       <button class="imode" data-imode="property" role="tab">Property Space</button>
     </div>
-    <div id="prop-axes">
-      <select class="tin" id="axis-x" style="width:170px;padding:9px 30px 9px 13px;font-size:11px" aria-label="X axis"></select>
-      <select class="tin" id="axis-y" style="width:170px;padding:9px 30px 9px 13px;font-size:11px" aria-label="Y axis"></select>
+    <div id="prop-axes" aria-label="Property space axes">
+      <label class="axis-control" for="axis-x"><span>X axis</span><select class="tin" id="axis-x" aria-label="X axis"></select></label>
+      <span class="axis-versus" aria-hidden="true">versus</span>
+      <label class="axis-control" for="axis-y"><span>Y axis</span><select class="tin" id="axis-y" aria-label="Y axis"></select></label>
     </div>
     <div id="index-left">
       <div class="panel lens">
@@ -429,39 +438,31 @@
 
   <!-- ════ COLLECTION ════ -->
   <section class="screen" id="scr-collection" aria-label="Collection">
-    <div id="coll-left">
-      <div class="panel lens">
-        <div class="panel-title">Personal Vault</div>
-        <div class="panel-body">
-          <div class="display" style="font-size:40px" id="coll-count">0 / 26</div>
-          <div class="tiny dim" style="margin-bottom:12px">materials collected</div>
-          <div class="eyebrow" style="margin-bottom:6px">Sort by</div>
-          <div class="row wrap" style="gap:6px">
-            <button class="chip on" data-csort="recent">Recent</button>
-            <button class="chip" data-csort="rarity">Rarity</button>
-            <button class="chip" data-csort="family">Family</button>
-            <button class="chip" data-csort="mastery">Mastery</button>
-          </div>
-        </div>
+    <div id="coll-left" class="collection-toolbar">
+      <div class="collection-title"><span class="eyebrow">Personal archive</span><h2 class="display">Collection</h2><p><b id="coll-count">0 / 26</b> materials catalogued</p></div>
+      <div class="collection-search"><label for="coll-search">Search collection</label><input class="tin" id="coll-search" type="search" placeholder="Material, structure or application"></div>
+      <div class="collection-filters" aria-label="Collection filters">
+        <select class="tin" id="coll-family" aria-label="Filter by material family"><option value="">All families</option></select>
+        <select class="tin" id="coll-property" aria-label="Filter by property"><option value="">All properties</option><option value="conductive">Conductive</option><option value="strong">High strength</option><option value="flexible">Flexible</option><option value="thermal">Thermal performance</option><option value="optical">Optical</option></select>
+        <select class="tin" id="coll-application" aria-label="Filter by application"><option value="">All applications</option></select>
+        <select class="tin" id="coll-rarity" aria-label="Filter by rarity"><option value="">All rarities</option><option>common</option><option>uncommon</option><option>rare</option><option>epic</option><option>legendary</option></select>
+        <select class="tin" id="coll-status" aria-label="Filter by study status"><option value="">All states</option><option value="discovered">Discovered</option><option value="studied">Studied</option><option value="mastered">Mastered</option><option value="locked">Undiscovered</option></select>
       </div>
-      <div class="panel lens">
-        <div class="panel-title">Family Set Bonuses</div>
-        <div class="panel-body" id="coll-sets"></div>
+      <div class="collection-tools">
+        <div class="row" role="group" aria-label="Collection view"><button class="chip on" data-cview="grid">Grid</button><button class="chip" data-cview="list">List</button></div>
+        <select class="tin" id="coll-sort" aria-label="Sort collection"><option value="recent">Recent</option><option value="rarity">Rarity</option><option value="family">Family</option><option value="mastery">Mastery</option></select>
+        <button class="chip" id="coll-more">Archive details</button>
       </div>
-      <div class="panel lens">
-        <div class="panel-title">Duplicate Samples</div>
-        <div class="panel-body">
-          <div class="row" style="justify-content:space-between">
-            <b class="mono" id="dupe-count" style="font-weight:400">0</b>
-            <button class="ctl sm" id="dupe-convert" disabled>Convert → credits</button>
-          </div>
-          <p class="tiny dim" style="margin-top:8px;line-height:1.5">Duplicate field samples convert into research credits.</p>
-        </div>
+      <div id="coll-archive-details" hidden>
+        <div><span class="eyebrow">Family progress</span><div id="coll-sets"></div></div>
+        <div><span class="eyebrow">Duplicate samples</span><b class="mono" id="dupe-count">0</b> <button class="ctl sm" id="dupe-convert" disabled>Convert to credits</button></div>
       </div>
     </div>
     <div id="coll-center"><div id="coll-grid"></div></div>
-    <div id="coll-right">
-      <div class="panel lens-r" id="coll-detail">
+    <div id="coll-right" aria-hidden="true">
+      <div id="coll-drawer-scrim" data-coll-close></div>
+      <aside class="panel lens-r" id="coll-detail" aria-label="Selected material specimen">
+        <button class="drawer-close" data-coll-close aria-label="Close specimen drawer">×</button>
         <div class="panel-title">Specimen</div>
         <div class="panel-body">
           <div id="specimen3d-wrap" aria-live="polite">
@@ -470,7 +471,7 @@
           </div>
           <div id="coll-detail-info"><p class="tiny dim" style="margin-top:12px">Select a specimen from the vault.</p></div>
         </div>
-      </div>
+      </aside>
     </div>
   </section>
 
@@ -480,6 +481,9 @@
       <div class="panel">
         <div class="panel-title">Comparison Field</div>
         <div class="panel-body">
+          <div class="cmp-purpose"><label for="cmp-use"><span class="eyebrow">Intended use</span><select class="tin" id="cmp-use">
+            <option value="wearable">Flexible wearable electrode</option><option value="thermal">Compact heat spreader</option><option value="aerospace">Lightweight structural panel</option><option value="optical">Transparent protective window</option>
+          </select></label><div><p id="cmp-use-note"></p><button class="ctl sm" id="cmp-load-use">Load suggested set</button></div></div>
           <div id="compare-tray"></div>
           <div id="cmp-detail">
             <div class="subplate" id="cmp-radar-panel">
@@ -491,6 +495,7 @@
               <div class="cmp-table-scroll"><table id="cmp-table"></table></div>
             </div>
           </div>
+          <div id="cmp-context" aria-live="polite"></div>
           <p class="tiny dim" style="margin-top:10px">Representative literature values — properties vary with processing, orientation and microstructure. Cyan marks the strongest value per row.</p>
         </div>
       </div>
@@ -577,6 +582,17 @@
   </main>
 </div>
 
+<div id="command-palette" hidden role="dialog" aria-modal="true" aria-labelledby="command-title">
+  <button class="command-veil" data-command-close aria-label="Close search"></button>
+  <div class="command-box">
+    <div class="command-input-row"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
+      <input id="global-search" type="search" autocomplete="off" placeholder="Search materials, properties, applications or investigations" aria-label="Search MATERIDEX">
+      <kbd>Esc</kbd></div>
+    <div class="command-intro" id="command-title">Try “transparent conductive materials” or “polymers that survive high temperatures”</div>
+    <div id="global-search-results" role="listbox"></div>
+    <div class="command-foot"><span>↑ ↓ navigate</span><span>Enter open</span><span>Local archive matching</span></div>
+  </div>
+</div>
 <div id="toasts" aria-live="polite"></div>
 <div id="modal-root"><div id="modal-veil"></div><div id="modal-box" class="panel"></div></div>
 
@@ -587,22 +603,23 @@
 <script src="vendor/RenderPass.js"></script>
 <script src="vendor/ShaderPass.js"></script>
 <script src="vendor/UnrealBloomPass.js"></script>
-<script src="js/data.js"></script>
+<script src="js/data.js?v=20260722e"></script>
 <script src="js/core.js"></script>
 <script src="js/gfx.js"></script>
 <script src="js/structure-data.js"></script>
 <script src="js/structures.js"></script>
-<script src="js/codex.js"></script>
-<script src="js/constellation.js"></script>
-<script src="js/atlas.js"></script>
+<script src="js/codex.js?v=20260722c"></script>
+<script src="js/constellation.js?v=20260722e"></script>
+<script src="js/atlas.js?v=20260722e"></script>
 <script src="js/lab.js"></script>
-<script src="js/collection.js"></script>
-<script src="js/loadout.js"></script>
+<script src="js/collection.js?v=20260722c"></script>
+<script src="js/loadout.js?v=20260722c"></script>
 <script src="js/expedition.js"></script>
 <script src="js/challenges.js"></script>
-<script src="js/quests.js"></script>
+<script src="js/quests.js?v=20260722c"></script>
 <script src="js/onboard.js"></script>
 <script src="js/first-mission.js"></script>
+<script src="js/search.js?v=20260722c"></script>
 <script src="js/meta.js"></script>
 </body>
 </html>
